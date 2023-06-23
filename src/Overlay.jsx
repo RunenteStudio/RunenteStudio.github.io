@@ -9,7 +9,7 @@ export function Overlay() {
           <a id="main-button"
              href="#"
              onClick={setMainText}>
-          <strong>museo/</strong>mainRoom <sup>Demo</sup>
+          <strong>MUNAVI</strong><sup>Demo</sup>
           </a>
         </h1>
         <nav>
@@ -39,7 +39,7 @@ export function Overlay() {
   );
 }
 
-function setText (e){
+export function setText (e){
   e.preventDefault();
   //sectionText.textContent = 'Showcase';
   document.getElementById('slr').textContent = 'Showcase';  
@@ -54,4 +54,8 @@ function setSculptureText (e){
 function setMainText (e){
   e.preventDefault();
   document.getElementById('slr').innerHTML = 'Ejemplo de museo interactivo. <br/> En esta sección aparecerá información del objeto seleccionado en menú';
+}
+
+export function setText1 (){
+  document.getElementById('slr').textContent = 'Showcase';  
 }

@@ -12,6 +12,7 @@ import * as dat from 'dat.gui'
 import Cubes from './Cubes'
 import { MeshContext } from './MeshContext'
 import { Object3D } from 'three'
+import { setText1 } from './Overlay'
 
 
 export default function Scene({ ...props }) {
@@ -118,6 +119,7 @@ export default function Scene({ ...props }) {
             rotation={[-1.66, 0, -0.21]}
             scale={0.82}
             onClick={() => {
+              
               setActive(!active);
               console.log("amarillo clickeado")
               gsap.to(magentaRef.current.position,  {
@@ -141,6 +143,7 @@ export default function Scene({ ...props }) {
             }}
             onPointerOver={() => {
               setHover(true);
+              setText1();
               gsap.to(magentaRef.current.rotation,  {
                 x: () => 180,
                 duration: 100.0,
