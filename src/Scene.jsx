@@ -12,7 +12,7 @@ import * as dat from 'dat.gui'
 import Cubes from './Cubes'
 import { MeshContext } from './MeshContext'
 import { Object3D } from 'three'
-import { setText1 } from './Overlay'
+import { SetPercentageText, setText1 } from './Overlay'
 
 
 export default function Scene({ ...props }) {
@@ -143,7 +143,8 @@ export default function Scene({ ...props }) {
             }}
             onPointerOver={() => {
               setHover(true);
-              setText1();
+              SetPercentageText('100');
+              gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(magentaRef.current.rotation,  {
                 x: () => 180,
                 duration: 100.0,
@@ -179,6 +180,8 @@ export default function Scene({ ...props }) {
             }}
             onPointerOver={() => {
               setHover(true);
+              SetPercentageText('75')
+              gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(transparentRef.current.rotation,  {
                 x: () => 180,
                 duration: 100.0,
@@ -213,6 +216,8 @@ export default function Scene({ ...props }) {
             }}
             onPointerOver={() => {
               setHover(true);
+              SetPercentageText('50')
+              gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(yellowRef.current.rotation,  {
                 x: () => 180,
                 duration: 100.0,
@@ -249,6 +254,8 @@ export default function Scene({ ...props }) {
             }}
             onPointerOver={() => {
               setHover(true);
+              SetPercentageText('25')
+              gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(orangeRef.current.rotation,  {
                 x: () => 180,
                 duration: 100.0,

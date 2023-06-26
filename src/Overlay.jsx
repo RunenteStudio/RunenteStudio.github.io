@@ -32,7 +32,7 @@ export function Overlay() {
         </nav>
       </header>
       <section id="slr">
-        Ejemplo de museo interactivo. <br/> En esta sección aparecerá información del objeto seleccionado en menú
+        Ejemplo de museo interactivo. <br/> En esta sección aparecerá información del objeto seleccionado al hacer hover
       </section>
       
     </div>
@@ -58,4 +58,8 @@ function setMainText (e){
 
 export function setText1 (){
   document.getElementById('slr').textContent = 'Showcase';  
+}
+
+export function SetPercentageText(percentage){
+  document.getElementById('slr').textContent = percentage;  
 }
