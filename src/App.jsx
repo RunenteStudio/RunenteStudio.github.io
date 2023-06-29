@@ -4,6 +4,7 @@ import { Instance, OrbitControls, useProgress } from '@react-three/drei'
 import Scene from './Scene'
 import Flock from './Flock'
 
+
 import Cubes from './Cubes';
 import { Overlay } from './Overlay'
 
@@ -12,7 +13,7 @@ export default function App() {
   const { active, loaded, total } = useProgress();
   const isLoaded = !active && total > 0 && loaded === total;
 
-  
+
 
   return (
     
@@ -29,12 +30,15 @@ export default function App() {
         />
         {/*<Flock count={100} startPosition={[0, 151.54, -82.91]}/>*/}
         <Flock bounds={{ 
-          x: { min: -20, max: 0 },
-          y: { min: 190, max: 210 },
-          z: { min: 190, max: 210 },}}
+          x: { min: -70, max: 50 },
+          y: { min: 150, max: 200 },
+          z: { min: 120, max: 210 },} }
+          scale={10}
         />
+        
       </Canvas>
       {isLoaded && <Overlay />}
+      
     </Suspense>
   )
 }

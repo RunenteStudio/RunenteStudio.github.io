@@ -9,10 +9,11 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { gsap } from 'gsap'
 
 import * as dat from 'dat.gui'
-import Cubes from './Cubes'
 import { MeshContext } from './MeshContext'
 import { Object3D } from 'three'
 import { SetPercentageText, setText1 } from './Overlay'
+
+
 
 
 export default function Scene({ ...props }) {
@@ -94,7 +95,35 @@ export default function Scene({ ...props }) {
 
   // INST
 
-  
+  const handleMeshClick = () => {
+    setActive(!active);
+    console.log("amarillo clickeado");
+
+    gsap.to(magentaRef.current.position, {
+      x: 0,
+      y: 100.86,
+      z: 250,
+      duration: 1.0
+    });
+
+    gsap.to(meshRef.current.scale, {
+      x: 4,
+      y: 4,
+      z: 4,
+      duration: 1.0
+    });
+
+    gsap.to(meshRef.current.position, {
+      x: -10,
+      y: 200,
+      z: 200,
+      duration: 1.0
+    });
+
+    // Call the changeFishScale function from the Flock component
+    //flockRef.current.changeFishScale(/* Provide the fish index and new scale */);
+    
+  };
 
 
   return (
@@ -118,29 +147,7 @@ export default function Scene({ ...props }) {
             position={[0.9, 0.11, 0.65]}
             rotation={[-1.66, 0, -0.21]}
             scale={0.82}
-            onClick={() => {
-              
-              setActive(!active);
-              console.log("amarillo clickeado")
-              gsap.to(magentaRef.current.position,  {
-                x: () => 0,
-                y: () => 100.86,
-                z: () => 250,
-                duration: 1.0
-              })
-              gsap.to(meshRef.current.scale,  {
-                x: () => 4,
-                y: () => 4,
-                z: () => 4,
-                duration: 1.0
-              })    
-              gsap.to(meshRef.current.position,  {
-                x: () => -10,
-                y: () => 200,
-                z: () => 200,
-                duration: 1.0
-              })   
-            }}
+            onClick={handleMeshClick}
             onPointerOver={() => {
               setHover(true);
               SetPercentageText('100');
