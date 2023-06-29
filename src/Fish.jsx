@@ -1,19 +1,20 @@
 import React, { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { MeshStandardMaterial } from 'three';
 
-import { gsap } from 'gsap'
-
-
-
-const Fish = ({ position, scale, material  }) => {
+const Fish = ({ position, scale, materialProps }) => {
   const fishRef = useRef();
 
+  useFrame(() => {
+    // Add animation or any other logic here
+  });
 
   return (
-    <mesh ref={fishRef} position={position} scale={scale} 
+    <mesh ref={fishRef} position={position} scale={scale}
     castShadow
     receiveShadow>
       <sphereBufferGeometry args={[0.5, 32, 32]} />
-      <meshStandardMaterial attach="material" {...material} />
+      <meshStandardMaterial attach="material" {...materialProps} />
     </mesh>
   );
 };

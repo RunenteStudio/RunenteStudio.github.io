@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber';
 import Fish from './Fish';
-
-import { gsap } from 'gsap'
 
 import { MeshBasicMaterial, MeshStandardMaterial } from 'three';
 
 const Flock = ({ bounds, scale }) => {
   const [fishes, setFishes] = useState([]);
   const fishRefs = useRef([]);
-  
+
   const [divisionIndex, setDivisionIndex] = useState(0);
-  const material1 = new MeshBasicMaterial({ color: 'red' }); // Customize the material properties as needed
-  const material2 = new MeshStandardMaterial({ color: 'blue' }); // Customize the material properties as needed
 
   // Create initial fish positions
   useEffect(() => {
     const initialFishes = [];
+    const material1 = new MeshBasicMaterial({ color: 'red' });
+    const material2 = new MeshStandardMaterial({ color: 'blue' });
+
     for (let i = 0; i < 50; i++) {
+      const material = i < 25 ? material1 : material2;
+
       initialFishes.push({
         position: [
           bounds.x.min + Math.random() * (bounds.x.max - bounds.x.min),
@@ -25,10 +26,11 @@ const Flock = ({ bounds, scale }) => {
           bounds.z.min + Math.random() * (bounds.z.max - bounds.z.min),
         ],
         velocity: [
-          (Math.random() * 2 - 1) * 0.1,  // Decrease the velocity values to reduce speed
+          (Math.random() * 2 - 1) * 0.1, // Decrease the velocity values to reduce speed
           (Math.random() * 2 - 1) * 0.1,
           (Math.random() * 2 - 1) * 0.1,
         ],
+        materialProps: i < 25 ? { color: 'red' } : { color: 'blue', roughness: 0.5 },
       });
     }
     setFishes(initialFishes);
@@ -65,20 +67,18 @@ const Flock = ({ bounds, scale }) => {
         return { ...fish, position: boundedPosition, velocity: newVelocity };
       })
     );
-  
   });
-
-
 
   return (
     <>
-      {fishes.map((fish, index) => (  
-        
-        <Fish key={index} position={fish.position} scale={[scale, scale, scale]}
-        ref={ref => (fishRefs.current[index] = ref)}
-        material={index < divisionIndex ? material1 : material2} />
+      {fishes.map((fish, index) => (
+        <Fish
+          key={index}
+          position={fish.position}
+          scale={[scale, scale, scale]}
+          materialProps={fish.materialProps}
+        />
       ))}
-       
     </>
   );
 };
