@@ -14,7 +14,9 @@ import { Object3D } from 'three'
 import { SetPercentageText, setText1 } from './Overlay'
 
 
-
+import { ScaleContext } from './ScaleContext';
+import { setIsOriginalBehavior } from './flockUtils';
+import Flock from './Flock'
 
 export default function Scene({ ...props }) {
   const { nodes, materials } = useSpline('https://prod.spline.design/deTFkjUwoAmpZq-j/scene.splinecode')
@@ -28,7 +30,8 @@ export default function Scene({ ...props }) {
 
   const [active, setActive] = useState(false)
   const [hover, setHover] = useState(false)
-  
+
+
 
   //console.log(camera.rotation)
 
@@ -90,10 +93,44 @@ export default function Scene({ ...props }) {
       }
     }
     
+    
+
   })
 
 
   // INST
+
+  const [proportion, setProportion] = useState(0.5);
+
+  const handleProportionChange = (newProportion) => {
+    setProportion(newProportion);
+  };
+
+
+
+  const [bounds, setBounds] = useState({
+    x: { min: -70, max: 50 },
+    y: { min: 150, max: 200 },
+    z: { min: 120, max: 210 },
+  });
+
+
+  function calculateFlockScale(bounds) {
+    const xRange = bounds.x.max - bounds.x.min;
+    const yRange = bounds.y.max - bounds.y.min;
+    const zRange = bounds.z.max - bounds.z.min;
+    const maxRange = Math.max(xRange, yRange, zRange);
+    const initialScale = maxRange / 8; // Adjust the denominator to control the initial scale
+    return initialScale;
+  }
+
+
+
+
+  const [flockScale, setFlockScale] = useState(calculateFlockScale(bounds));
+  const flockRef = useRef();
+
+
 
   const handleMeshClick = () => {
     setActive(!active);
@@ -120,14 +157,19 @@ export default function Scene({ ...props }) {
       duration: 1.0
     });
 
-    // Call the changeFishScale function from the Flock component
-    //flockRef.current.changeFishScale(/* Provide the fish index and new scale */);
     
+    const newScale = 15.0; // Example: New scale value
+
+    setFlockScale(newScale);
   };
 
 
+  const [scale, setScale] = useState(10);
+  
+
   return (
     <>
+      <Flock bounds={bounds} scale={flockScale} proportion={proportion} />
       <instancedMesh ref={meshRef} args={[null, null, 1000]} position={[-10, 400, 200]} scale={0}
           castShadow
           receiveShadow>
@@ -157,6 +199,7 @@ export default function Scene({ ...props }) {
                 duration: 100.0,
                 repeat: -1,
               })
+              setProportion(1.0)
             }}
             onPointerOut={() => {
               setHover(false);
@@ -194,6 +237,7 @@ export default function Scene({ ...props }) {
                 duration: 100.0,
                 repeat: -1,
               })
+              setProportion(0.75)
             }}
             onPointerOut={() => {
               setHover(false);
@@ -230,7 +274,7 @@ export default function Scene({ ...props }) {
                 duration: 100.0,
                 repeat: -1,
               })
-              
+              setProportion(0.5)
             }}
             onPointerOut={() => {
               setHover(false); 
@@ -268,6 +312,7 @@ export default function Scene({ ...props }) {
                 duration: 100.0,
                 repeat: -1,
               })
+              setProportion(0.25)
             }}
             onPointerOut={() => {
               setHover(false);

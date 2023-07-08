@@ -8,6 +8,7 @@ import Flock from './Flock'
 import Cubes from './Cubes';
 import { Overlay } from './Overlay'
 
+
 export default function App() {
   const target = useRef();
   const { active, loaded, total } = useProgress();
@@ -25,17 +26,12 @@ export default function App() {
           maxAzimuthAngle={-Math.PI / 1.05}
           minPolarAngle={Math.PI / 2.5}
           maxPolarAngle={Math.PI - Math.PI / 2.1}
-          enableZoom={true}
-          enablePan={true}
+          enableZoom={false}
+          enablePan={false}
+          enableRotate={false}
         />
         {/*<Flock count={100} startPosition={[0, 151.54, -82.91]}/>*/}
-        <Flock bounds={{ 
-          x: { min: -70, max: 50 },
-          y: { min: 150, max: 200 },
-          z: { min: 120, max: 210 },} }
-          scale={10}
-        />
-        
+
       </Canvas>
       {isLoaded && <Overlay />}
       
