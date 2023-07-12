@@ -134,18 +134,9 @@ export default function Scene({ ...props }) {
 
   const [selectedMaterial, setSelectedMaterial] = useState(null);
 
+  
 
-  const handleMeshClick = () => {
-    setActive(!active);
-    console.log("amarillo clickeado");
-
-    gsap.to(magentaRef.current.position, {
-      x: 0,
-      y: 100.86,
-      z: 250,
-      duration: 1.0
-    });
-
+  const torusMove = () => {
     gsap.to(meshRef.current.scale, {
       x: 4,
       y: 4,
@@ -159,7 +150,18 @@ export default function Scene({ ...props }) {
       z: 200,
       duration: 1.0
     });
+  };
 
+  const handleMeshClick = () => {
+    setActive(!active);
+    console.log("amarillo clickeado");
+
+    gsap.to(magentaRef.current.position, {
+      x: 0,
+      y: 100.86,
+      z: 250,
+      duration: 1.0
+    });
     
     const newScale = 10.0; // Example: New scale value
 
@@ -167,6 +169,9 @@ export default function Scene({ ...props }) {
 
     setSelectedMaterial('blue');
 
+
+
+   
   };
   
   const [scale, setScale] = useState(10);
@@ -183,7 +188,7 @@ export default function Scene({ ...props }) {
   return (
     <>
       
-      <Flock bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.2}/>
+      <Flock ref={flockRef} bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.3} flockPosition={[0,200,0]} />
       <instancedMesh ref={meshRef} args={[null, null, 1000]} position={[-10, 400, 200]} scale={0}
           castShadow
           receiveShadow>

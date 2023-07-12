@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { MeshBasicMaterial, MeshStandardMaterial } from 'three';
 import Fish from './Fish';
 
-const Flock = ({ bounds, scale, proportion, isMerging, setIsMerging, velocity, movementSpeed }) => {
+const Flock = ({ bounds, scale, proportion, isMerging, setIsMerging, movementSpeed, flockPosition }) => {
   const [fishes, setFishes] = useState({ redFishes: [], blueFishes: [] });
 
   useEffect(() => {
@@ -65,10 +65,9 @@ const Flock = ({ bounds, scale, proportion, isMerging, setIsMerging, velocity, m
     setFishes(initialFishes);
   }, [bounds, proportion, movementSpeed]);
 
-
   useEffect(() => {
     const mergeTimer = setTimeout(() => {
-      //setIsMerging(true);
+      // setIsMerging(true);
     }, 5000);
 
     return () => {
@@ -296,7 +295,7 @@ const Flock = ({ bounds, scale, proportion, isMerging, setIsMerging, velocity, m
       {fishes.redFishes.map((fish, index) => (
         <Fish
           key={`red-${index}`}
-          position={fish.position}
+          position={[fish.position[0] + flockPosition[0], fish.position[1] + flockPosition[1], fish.position[2] + flockPosition[2]]}
           scale={[scale, scale, scale]}
           materialProps={fish.materialProps}
         />
@@ -304,7 +303,7 @@ const Flock = ({ bounds, scale, proportion, isMerging, setIsMerging, velocity, m
       {fishes.blueFishes.map((fish, index) => (
         <Fish
           key={`blue-${index}`}
-          position={fish.position}
+          position={[fish.position[0] + flockPosition[0], fish.position[1] + flockPosition[1], fish.position[2] + flockPosition[2]]}
           scale={[scale, scale, scale]}
           materialProps={fish.materialProps}
         />
