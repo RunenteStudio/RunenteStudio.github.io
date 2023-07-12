@@ -3,7 +3,7 @@ import { Canvas, useFrame, extend, useThree } from '@react-three/fiber'
 import { Instance, OrbitControls, useProgress } from '@react-three/drei'
 import Scene from './Scene'
 import Flock from './Flock'
-
+import Flock1 from './Flock1'
 
 import Cubes from './Cubes';
 import { Overlay } from './Overlay'
@@ -26,12 +26,12 @@ export default function App() {
           maxAzimuthAngle={-Math.PI / 1.05}
           minPolarAngle={Math.PI / 2.5}
           maxPolarAngle={Math.PI - Math.PI / 2.1}
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
+          enableZoom={true}
+          enablePan={true}
+          enableRotate={true}
         />
         {/*<Flock count={100} startPosition={[0, 151.54, -82.91]}/>*/}
-
+        
       </Canvas>
       {isLoaded && <Overlay />}
       

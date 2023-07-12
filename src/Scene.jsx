@@ -18,6 +18,8 @@ import { ScaleContext } from './ScaleContext';
 import { setIsOriginalBehavior } from './flockUtils';
 import Flock from './Flock'
 
+import { FlockProvider, useFlock } from './FlockContext'
+
 export default function Scene({ ...props }) {
   const { nodes, materials } = useSpline('https://prod.spline.design/deTFkjUwoAmpZq-j/scene.splinecode')
   const { camera, scene } = useThree()
@@ -120,7 +122,7 @@ export default function Scene({ ...props }) {
     const yRange = bounds.y.max - bounds.y.min;
     const zRange = bounds.z.max - bounds.z.min;
     const maxRange = Math.max(xRange, yRange, zRange);
-    const initialScale = maxRange / 8; // Adjust the denominator to control the initial scale
+    const initialScale = maxRange / 10; // Adjust the denominator to control the initial scale
     return initialScale;
   }
 
@@ -130,6 +132,7 @@ export default function Scene({ ...props }) {
   const [flockScale, setFlockScale] = useState(calculateFlockScale(bounds));
   const flockRef = useRef();
 
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
 
 
   const handleMeshClick = () => {
@@ -158,18 +161,29 @@ export default function Scene({ ...props }) {
     });
 
     
-    const newScale = 15.0; // Example: New scale value
+    const newScale = 10.0; // Example: New scale value
 
     setFlockScale(newScale);
+
+    setSelectedMaterial('blue');
+
+  };
+  
+  const [scale, setScale] = useState(10);
+  const [isMerging, setIsMerging] = useState(false);
+
+  const beginFlock = () => {
+    setIsMerging(true); // Call setIsMerging function to update the state
   };
 
-
-  const [scale, setScale] = useState(10);
-  
+  const endFlock = () => {
+    setIsMerging(false); // Call setIsMerging function to update the state
+  };
 
   return (
     <>
-      <Flock bounds={bounds} scale={flockScale} proportion={proportion} />
+      
+      <Flock bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.2}/>
       <instancedMesh ref={meshRef} args={[null, null, 1000]} position={[-10, 400, 200]} scale={0}
           castShadow
           receiveShadow>
@@ -189,10 +203,13 @@ export default function Scene({ ...props }) {
             position={[0.9, 0.11, 0.65]}
             rotation={[-1.66, 0, -0.21]}
             scale={0.82}
-            onClick={handleMeshClick}
+            onClick={() => {
+              handleMeshClick()
+              
+            }}
             onPointerOver={() => {
               setHover(true);
-              SetPercentageText('100');
+              SetPercentageText('100% de los encuestados estuvieron de acuerdo en que');
               gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(magentaRef.current.rotation,  {
                 x: () => 180,
@@ -200,10 +217,12 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(1.0)
+              beginFlock()
             }}
             onPointerOut={() => {
               setHover(false);
               gsap.killTweensOf(magentaRef.current.rotation)
+              //endFlock()
             }}
           />
         </group>
@@ -227,6 +246,7 @@ export default function Scene({ ...props }) {
                 z: () => 250,
                 duration: 1.0
               })
+              
             }}
             onPointerOver={() => {
               setHover(true);
@@ -238,10 +258,12 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.75)
+              beginFlock()
             }}
             onPointerOut={() => {
               setHover(false);
               gsap.killTweensOf(transparentRef.current.rotation)
+              
             }}
           />
         </group>
@@ -275,6 +297,8 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.5)
+              beginFlock()
+
             }}
             onPointerOut={() => {
               setHover(false); 
@@ -313,6 +337,8 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.25)
+              beginFlock()
+
             }}
             onPointerOut={() => {
               setHover(false);

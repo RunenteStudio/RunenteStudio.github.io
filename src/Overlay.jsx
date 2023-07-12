@@ -13,22 +13,7 @@ export function Overlay() {
           </a>
         </h1>
         <nav>
-          <a
-            id="screen-button"
-            href="#"
-            onClick={setText}
-            rel="noreferrer"
-            className={styles.selected}
-          >
-            / pantalla
-          </a>
-          <a 
-             id="sculpt-button"
-             href="#"
-             onClick={setSculptureText}
-             rel="noreferrer">
-            / escultura
-          </a>
+
         </nav>
       </header>
       <section id="slr">
