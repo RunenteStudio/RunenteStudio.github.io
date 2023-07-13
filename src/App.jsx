@@ -26,9 +26,9 @@ export default function App() {
           maxAzimuthAngle={-Math.PI / 1.05}
           minPolarAngle={Math.PI / 2.5}
           maxPolarAngle={Math.PI - Math.PI / 2.1}
-          enableZoom={true}
-          enablePan={true}
-          enableRotate={true}
+          enableZoom={false}
+          enablePan={false}
+          enableRotate={false}
         />
         {/*<Flock count={100} startPosition={[0, 151.54, -82.91]}/>*/}
         

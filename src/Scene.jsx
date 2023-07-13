@@ -126,11 +126,24 @@ export default function Scene({ ...props }) {
     return initialScale;
   }
 
+  const [clicked, click] = useState(false)
 
 
-
-  const [flockScale, setFlockScale] = useState(calculateFlockScale(bounds));
+  //const [flockScale, setFlockScale] = useState(calculateFlockScale(bounds));
   const flockRef = useRef();
+
+  useEffect(() => {
+    // Animate flock position after the component mounts
+    animateFlockPosition();
+  }, []);
+
+  const animateFlockPosition = () => {
+    gsap.to(flockRef.current, {
+      flockPosition: [100, 300, 50], // Example target flockPosition
+      duration: 1,
+      ease: 'power1.out',
+    });
+  };
 
   const [selectedMaterial, setSelectedMaterial] = useState(null);
 
@@ -155,23 +168,12 @@ export default function Scene({ ...props }) {
   const handleMeshClick = () => {
     setActive(!active);
     console.log("amarillo clickeado");
-
-    gsap.to(magentaRef.current.position, {
-      x: 0,
-      y: 100.86,
-      z: 250,
-      duration: 1.0
-    });
-    
     const newScale = 10.0; // Example: New scale value
 
-    setFlockScale(newScale);
+    //setFlockScale(newScale);
 
     setSelectedMaterial('blue');
 
-
-
-   
   };
   
   const [scale, setScale] = useState(10);
@@ -185,10 +187,112 @@ export default function Scene({ ...props }) {
     setIsMerging(false); // Call setIsMerging function to update the state
   };
 
+  const magentaMeshMove = () => {
+    gsap.to(magentaRef.current.position, {
+      x: 0,
+      y: 100.86,
+      z: 250,
+      duration: 1.0
+    });
+    
+  }
+
+  const transparentMeshMove = () => {
+    gsap.to(transparentRef.current.position,  {
+      x: () => 0,
+      y: () => 100.86,
+      z: () => 250,
+      duration: 1.0
+    })
+  }
+
+  const yellowMeshMove = () => {
+    gsap.to(yellowRef.current.position,  {
+      x: () => 0,
+      y: () => 100.86,
+      z: () => 250,
+      duration: 1.0
+    })
+  }
+
+  const orangeMeshMove = () => {
+    gsap.to(orangeRef.current.position,  {
+      x: () => 0,
+      y: () => 100.86,
+      z: () => 250,
+      duration: 1.0
+    })
+  }
+
+  const [flockPosition, setFlockPosition] = useState([0, 200, 0]); // Initial position
+  const [targetPosition, setTargetPosition] = useState([0, 200, 0]); // Target position
+
+  const [flockScale, setFlockScale] = useState(1); // Initial scale
+  const [targetScale, setTargetScale] = useState(0); // Target scale
+
+  
+
+
+  // Function to move the flock position gradually
+  const moveFlockPosition = (newPosition) => {
+    setTargetPosition(newPosition);
+  };
+
+  const scaleFlock = (newScale) => {
+    setTargetScale(newScale);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const deltaX = (targetPosition[0] - flockPosition[0]) * 0.1;
+      const deltaY = (targetPosition[1] - flockPosition[1]) * 0.1;
+      const deltaZ = (targetPosition[2] - flockPosition[2]) * 0.1;
+      const newPosition = [
+        flockPosition[0] + deltaX,
+        flockPosition[1] + deltaY,
+        flockPosition[2] + deltaZ,
+      ];
+
+      setFlockPosition(newPosition);
+
+      // Check if the flock has reached the target position
+      if (
+        Math.abs(targetPosition[0] - flockPosition[0]) < 0.1 &&
+        Math.abs(targetPosition[1] - flockPosition[1]) < 0.1 &&
+        Math.abs(targetPosition[2] - flockPosition[2]) < 0.1
+      ) {
+        clearInterval(interval);
+      }
+    }, 16); // Adjust the interval duration for smoother animation if needed
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [flockPosition, targetPosition]);
+
+
+  useEffect(() => {
+    // Scale the flock gradually
+    const interval = setInterval(() => {
+      const deltaScale = (targetScale - flockScale) * 0.1;
+      const newScale = flockScale + deltaScale;
+      setFlockScale(newScale);
+
+      // Check if the flock has reached the target scale
+      if (Math.abs(targetScale - flockScale) < 0.1) {
+        clearInterval(interval);
+      }
+    }, 32); // Adjust the interval duration for smoother animation if needed
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [flockScale, targetScale]);
+
   return (
     <>
       
-      <Flock ref={flockRef} bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.3} flockPosition={[0,200,0]} />
+      <Flock ref={flockRef} bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.3} flockPosition={flockPosition} />
       <instancedMesh ref={meshRef} args={[null, null, 1000]} position={[-10, 400, 200]} scale={0}
           castShadow
           receiveShadow>
@@ -210,6 +314,9 @@ export default function Scene({ ...props }) {
             scale={0.82}
             onClick={() => {
               handleMeshClick()
+              //animateFlockPosition()
+              //magentaMeshMove()
+              beginFlock()
               
             }}
             onPointerOver={() => {
@@ -222,12 +329,17 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(1.0)
-              beginFlock()
+              //beginFlock()
+              click(true)
+              moveFlockPosition([0,0,0])
+              scaleFlock(10)
             }}
             onPointerOut={() => {
               setHover(false);
               gsap.killTweensOf(magentaRef.current.rotation)
               //endFlock()
+              moveFlockPosition([0,200,0])
+              scaleFlock(0)
             }}
           />
         </group>
@@ -245,17 +357,12 @@ export default function Scene({ ...props }) {
             onClick={() => {
               setActive(!active);
               console.log("amarillo clickeado")
-              gsap.to(transparentRef.current.position,  {
-                x: () => 0,
-                y: () => 100.86,
-                z: () => 250,
-                duration: 1.0
-              })
-              
+              //transparentMeshMove()
+              beginFlock()
             }}
             onPointerOver={() => {
               setHover(true);
-              SetPercentageText('75')
+              SetPercentageText('75% de los encuestados estuvieron de acuerdo en que')
               gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(transparentRef.current.rotation,  {
                 x: () => 180,
@@ -263,12 +370,16 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.75)
-              beginFlock()
+              //beginFlock()
+              click(true)
+              moveFlockPosition([0,0,0])
+              scaleFlock(10)
             }}
             onPointerOut={() => {
-              setHover(false);
+              setHover(false)
               gsap.killTweensOf(transparentRef.current.rotation)
-              
+              moveFlockPosition([0,200,0])
+              scaleFlock(0)
             }}
           />
         </group>
@@ -285,16 +396,12 @@ export default function Scene({ ...props }) {
             scale={0.82}
             onClick={() => {
               setActive(!active);
-              gsap.to(yellowRef.current.position,  {
-                x: () => 0,
-                y: () => 100.86,
-                z: () => 250,
-                duration: 1.0
-              })
+              //yellowMeshMove()
+              beginFlock()
             }}
             onPointerOver={() => {
               setHover(true);
-              SetPercentageText('50')
+              SetPercentageText('50% de los encuestados estuvieron de acuerdo en que')
               gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(yellowRef.current.rotation,  {
                 x: () => 180,
@@ -302,12 +409,16 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.5)
-              beginFlock()
-
+              //beginFlock()
+              click(true)
+              moveFlockPosition([0,0,0])
+              scaleFlock(10)
             }}
             onPointerOut={() => {
               setHover(false); 
               gsap.killTweensOf(yellowRef.current.rotation)
+              moveFlockPosition([0,200,0])
+              scaleFlock(0)
             }}
           />
         </group>
@@ -325,16 +436,12 @@ export default function Scene({ ...props }) {
             onClick={() => {
               setActive(!active);
               console.log("amarillo clickeado")
-              gsap.to(orangeRef.current.position,  {
-                x: () => 0,
-                y: () => 100.86,
-                z: () => 250,
-                duration: 1.0
-              })
+              //orangeMeshMove()
+              beginFlock()
             }}
             onPointerOver={() => {
               setHover(true);
-              SetPercentageText('25')
+              SetPercentageText('25% de los encuestados estuvieron de acuerdo en que')
               gsap.fromTo("#slr", {autoAlpha: 0}, {autoAlpha: 1.0, duration: 1});
               gsap.to(orangeRef.current.rotation,  {
                 x: () => 180,
@@ -342,12 +449,17 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.25)
-              beginFlock()
-
+              //beginFlock()
+              click(true)
+              moveFlockPosition([0,0,0])
+              scaleFlock(10)
             }}
             onPointerOut={() => {
               setHover(false);
               gsap.killTweensOf(orangeRef.current.rotation)
+              //click(false)
+              moveFlockPosition([0,200,0])
+              scaleFlock(0)
             }}
           />
         </group>
