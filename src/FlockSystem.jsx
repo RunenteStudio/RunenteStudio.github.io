@@ -1,32 +1,22 @@
-import React, { useEffect, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { SteeringFlock, Vehicle, RenderComponent } from 'yuka';
+import React, { useRef } from 'react';
+import Boid from './Boid'; // Assuming you've already created the Boid component
 
-const FlockSystem = () => {
-  const flockRef = useRef(null);
+const FlockSystem = ({ numberOfBoids }) => {
+  const flockRef = useRef();
 
-  useEffect(() => {
-    const flock = new SteeringFlock();
-
-    // Add entities to the flock
-    for (let i = 0; i < 100; i++) {
-      const entity = new Vehicle();
-      entity.position.set(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5);
-      entity.setRenderComponent(new RenderComponent());
-      flock.add(entity);
-    }
-
-    flockRef.current = flock;
-  }, []);
-
-  useFrame(() => {
-    if (flockRef.current) {
-      flockRef.current.update();
-    }
+  const createRandomBoidPosition = () => ({
+    x: Math.random() * 200 - 100,
+    y: Math.random() * 200 - 100,
+    z: Math.random() * 200 - 100,
   });
 
-  return null;
+  return (
+    <group ref={flockRef}>
+      {Array.from({ length: numberOfBoids }).map((_, index) => (
+        <Boid key={index} position={createRandomBoidPosition()} />
+      ))}
+    </group>
+  );
 };
 
 export default FlockSystem;
-

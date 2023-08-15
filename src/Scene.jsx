@@ -19,6 +19,7 @@ import { setIsOriginalBehavior } from './flockUtils';
 import Flock from './Flock'
 
 import { FlockProvider, useFlock } from './FlockContext'
+import FlockSystem from './FlockSystem'
 
 export default function Scene({ ...props }) {
   const { nodes, materials } = useSpline('https://prod.spline.design/deTFkjUwoAmpZq-j/scene.splinecode')
@@ -292,7 +293,7 @@ export default function Scene({ ...props }) {
   return (
     <>
       
-      <Flock ref={flockRef} bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.3} flockPosition={flockPosition} />
+      <Flock ref={flockRef} bounds={bounds} scale={flockScale} proportion={proportion} isMerging={isMerging} setIsMerging={setIsMerging} movementSpeed={0.2} flockPosition={flockPosition} />
       <instancedMesh ref={meshRef} args={[null, null, 1000]} position={[-10, 400, 200]} scale={0}
           castShadow
           receiveShadow>
@@ -316,7 +317,7 @@ export default function Scene({ ...props }) {
               handleMeshClick()
               //animateFlockPosition()
               //magentaMeshMove()
-              beginFlock()
+              //beginFlock()
               
             }}
             onPointerOver={() => {
@@ -329,17 +330,19 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(1.0)
-              //beginFlock()
+              beginFlock()
               click(true)
               moveFlockPosition([0,0,0])
               scaleFlock(10)
+              
             }}
             onPointerOut={() => {
               setHover(false);
               gsap.killTweensOf(magentaRef.current.rotation)
               //endFlock()
-              moveFlockPosition([0,200,0])
-              scaleFlock(0)
+              //moveFlockPosition([0,200,0])
+              //scaleFlock(0)
+              endFlock()
             }}
           />
         </group>
@@ -358,7 +361,7 @@ export default function Scene({ ...props }) {
               setActive(!active);
               console.log("amarillo clickeado")
               //transparentMeshMove()
-              beginFlock()
+              //beginFlock()
             }}
             onPointerOver={() => {
               setHover(true);
@@ -370,7 +373,7 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.75)
-              //beginFlock()
+              beginFlock()
               click(true)
               moveFlockPosition([0,0,0])
               scaleFlock(10)
@@ -378,8 +381,9 @@ export default function Scene({ ...props }) {
             onPointerOut={() => {
               setHover(false)
               gsap.killTweensOf(transparentRef.current.rotation)
-              moveFlockPosition([0,200,0])
-              scaleFlock(0)
+              //moveFlockPosition([0,200,0])
+              //scaleFlock(0)
+              endFlock()
             }}
           />
         </group>
@@ -397,7 +401,7 @@ export default function Scene({ ...props }) {
             onClick={() => {
               setActive(!active);
               //yellowMeshMove()
-              beginFlock()
+              //beginFlock()
             }}
             onPointerOver={() => {
               setHover(true);
@@ -409,7 +413,7 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.5)
-              //beginFlock()
+              beginFlock()
               click(true)
               moveFlockPosition([0,0,0])
               scaleFlock(10)
@@ -417,8 +421,9 @@ export default function Scene({ ...props }) {
             onPointerOut={() => {
               setHover(false); 
               gsap.killTweensOf(yellowRef.current.rotation)
-              moveFlockPosition([0,200,0])
-              scaleFlock(0)
+              //moveFlockPosition([0,200,0])
+              //scaleFlock(0)
+              endFlock()
             }}
           />
         </group>
@@ -437,7 +442,7 @@ export default function Scene({ ...props }) {
               setActive(!active);
               console.log("amarillo clickeado")
               //orangeMeshMove()
-              beginFlock()
+              //beginFlock()
             }}
             onPointerOver={() => {
               setHover(true);
@@ -449,7 +454,7 @@ export default function Scene({ ...props }) {
                 repeat: -1,
               })
               setProportion(0.25)
-              //beginFlock()
+              beginFlock()
               click(true)
               moveFlockPosition([0,0,0])
               scaleFlock(10)
@@ -458,8 +463,9 @@ export default function Scene({ ...props }) {
               setHover(false);
               gsap.killTweensOf(orangeRef.current.rotation)
               //click(false)
-              moveFlockPosition([0,200,0])
-              scaleFlock(0)
+              //moveFlockPosition([0,200,0])
+              //scaleFlock(0)
+              endFlock()
             }}
           />
         </group>

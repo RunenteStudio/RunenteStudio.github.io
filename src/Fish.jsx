@@ -1,23 +1,22 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useFrame } from '@react-three/fiber';
-import { MeshStandardMaterial } from 'three';
+import { Mesh, SphereBufferGeometry } from 'three';
 
 const Fish = ({ position, scale, materialProps }) => {
-  const fishRef = useRef();
+  const ref = React.useRef();
 
   useFrame(() => {
-    // Add animation or any other logic here
+    if (ref.current) {
+      ref.current.position.set(...position);
+    }
   });
 
   return (
-    <mesh ref={fishRef} position={position} scale={scale}
-    castShadow
-    receiveShadow>
+    <mesh ref={ref} position={position} scale={scale}>
       <sphereBufferGeometry args={[0.5, 32, 32]} />
-      <meshStandardMaterial attach="material" {...materialProps} />
+      <meshStandardMaterial {...materialProps} />
     </mesh>
   );
 };
 
 export default Fish;
-
