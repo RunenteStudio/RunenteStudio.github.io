@@ -9,7 +9,7 @@ export function Overlay() {
           <a id="main-button"
              href="#"
              onClick={setMainText}>
-          <strong>MUNAVI</strong><sup>Demo</sup>
+          <strong>MUSEO</strong><sup>Demo</sup>
           </a>
         </h1>
         <nav>

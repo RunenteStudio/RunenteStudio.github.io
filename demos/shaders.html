@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://fonts.googleapis.com/css2?family=Adelle+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #F1EFEC;
+        }
+
+
+        .logo {
+            width: 200px;
+            margin-bottom: 60px;
+            margin-top: 60px;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 60px;
+        }
+
+        .button {
+
+            width: 120px;
+            margin: 7px;
+            padding: 10px 20px;
+            background-color: #9D9D9D;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-family: 'Roboto', sans-serif;
+            text-align: center;
+
+        }
+
+        .button:hover {
+            background-color: #FF0000;
+        }
+
+        p {
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 300;
+            font-style: italic;
+            color: #9D9D9D;
+            margin-bottom: 20px;
+        }
+
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+</head>
+<body style="background-color: #F1EFEC;">
+    <P> Algunos de nuestros shaders </P>
+    <div class="container" style="font-size: 20px;">
+        <div class="row">
+            <div class="text-center col-sm-4 mb-2">
+                <div id="container">
+                    <h1 style="font-size: 20px;">Wavepointer</h1>
+                    <!-- Your shader content here -->
+                </div>
+            </div>
+            <div class="text-center col-sm-4 mb-2">
+                <div id="container1">
+                    <h1 style="font-size: 20px;">Scanner</h1>
+                    <!-- Your shader content here -->
+                </div>
+            </div>
+            <div class="text-center col-sm-4 mb-2">
+                <div id="container2">
+                    <h1 style="font-size: 20px;">Line</h1>
+                    <!-- Your shader content here -->
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="row">
+                <a class="button fixed-bottom " href="/index.html">Página principal</a>
+
+        </div>
+      </div>
+    
+       <script id="vertexShader" type="x-shader/x-vertex">
+            void main() {
+                gl_Position = vec4( position, 1.0 );
+            }
+       </script>
+       <script id="vertexShader1" type="x-shader/x-vertex">
+        void main() {
+            gl_Position = vec4( position, 1.0 );
+        }
+        </script>
+        <script id="vertexShader2" type="x-shader/x-vertex">
+            void main() {
+                gl_Position = vec4( position, 1.0 );
+            }
+            </script>
+      <script id="fragmentShader" type="x-shader/x-fragment">
+            
+            precision mediump float;
+            
+            uniform float u_time;
+            uniform vec2 u_mouse;
+            uniform vec2 u_resolution;
+            
+            void main( void ) {
+            
+                vec2 p = 2.0*( gl_FragCoord.xy / u_resolution.xy ) -1.0;
+            
+                vec3 col = vec3(0);
+                
+                
+                for (int i = 0; i < 100; i++) {
+                    float r = float(i)*0.01;
+                    
+                    col += vec3(1.0)/(12.0+3500.0*(abs(length(sin(p.x*3237.0+p.y*23432.0)*0.050+p.xy-vec2(0,sin(-u_time+float(i)*0.03)*float(i)*0.008))-r))); 
+                    
+                }
+                gl_FragColor = vec4(col, 1.0);
+            }
+
+        </script>
+
+        <script id="fragmentShader1" type="x-shader/x-fragment">
+            
+            precision mediump float;
+
+            uniform vec2 u_resolution;
+            uniform vec2 u_mouse;
+            uniform float u_time;
+            uniform float transition;
+
+            vec3 hsl2rgb(vec3 c)
+            {
+                vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
+
+                return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
+            }
+
+            vec3 chroma(vec2 st, float t, float s) {
+                vec3 r;
+                
+                vec3 colors[6];
+                colors[0] =  vec3(0,0,0);
+                colors[1] =  vec3(0.1894, 0.189, 0.613);
+                colors[2] =  vec3(0, 0.807, 0.865);
+                colors[3] =  vec3(1);
+                colors[4] =  vec3(0.886, 0.886, 0.2037);
+                colors[5] =  vec3(0.514, 0.0092, 0.0092);
+                    
+                float diagonal = 0.1;
+                st *= s;
+                float grad = mod(st.x*3. - st.y + t*.4, 1.000);
+                grad = grad * 7.;
+                
+                int index = int(floor(grad));
+                
+                if(index == 0){
+                    r = mix(colors[0], colors[1],mod(grad,1.));
+                } else if (index == 1) {
+                    r = mix(colors[1], colors[2],mod(grad,1.));
+                } else if (index == 2) {
+                    r = mix(colors[2], colors[3],mod(grad,1.));
+                } else if (index == 3) {
+                    r = mix(colors[3], colors[4],mod(grad,1.));
+                } else if (index == 4) {
+                    r = mix(colors[4], colors[5],mod(grad,1.));
+                } else if (index == 5) {
+                    r = mix(colors[5], colors[0],mod(grad,1.));
+                }
+                
+                return r;
+            }
+
+            float noisyGrad(vec2 st, float t) {
+                float r, r1, r2, r3;
+                
+                float stepFactor1 = mod(floor(t * 3.), 3.) + 1.;
+                float stepFactor2 = mod(floor(t * -7.), 11.960) + 0.768;
+                
+                vec2 step1 = floor(st * 32.0) / 32.;
+                vec2 step2 = floor(st * 32.0) / 32.;
+                vec2 step3 = floor(st * 64.0) / 64.;
+                r1 = mod(step1.x + step1.y * stepFactor1 + stepFactor1 * -1., 1.0);
+                r2 = mod(step2.x + step2.y * stepFactor2 + stepFactor2 * 1.448, 1.0);
+                
+                if((mod(((step3.x*step3.y+.1) + step3.y) * 860., 27.) < 3.) && mod(step3.y, 0.13) < .03){
+                    //r3 = 1.;   
+                } else{
+                    r3 = 0.;
+                }
+                
+                r = (r2-(1.-r1)) + r3;
+                return r;
+            }
+
+            float circle(vec2 st){
+                float r1 = distance(st, vec2(0.7, -0.3));
+                r1 = 1. - smoothstep(0., 0.9, r1);
+
+                float r2 = distance(st, vec2(0.3, 0.7));
+                r2 = (1. - smoothstep(0., 0.4, r2))*.4;
+                
+                return mix(0.,1.,r1+r2);
+            }
+
+            void main() {
+                vec2 st = gl_FragCoord.xy/u_resolution.xy;
+                st.x *= u_resolution.x/u_resolution.y;
+
+                vec3 color = vec3(0.);
+                
+                ///noisy gradient
+                float noisy = clamp(noisyGrad(st,u_time)+.1,0.,1.);
+
+                ///chroma aberration
+                vec3 chromaGradient1 = chroma(st, u_time, 1.);
+                vec3 chromaGradient2 = chroma(st, u_time, 2.);
+
+                vec3 colorGradient = vec3(noisy, noisy, noisy*.8+0.188);
+                
+                float mask1, mask2 = 0.;
+                if(noisy > 0.4 && noisy < 0.8){
+                    float d = clamp((abs(noisy - 0.6)/0.186), 0., 1.)*0.876;
+                    mask1 = 1. - d;
+                } else if(noisy > 0.01 && noisy < 0.388){
+                    mask2 = 0.15;
+                }
+                
+                //color = chromaGradient1;
+                color = mix(colorGradient, chromaGradient1, mask1);
+                color = mix(color, chromaGradient2, mask2);
+                
+                float circleMask = circle(st);
+                color +=  hsl2rgb(vec3(circleMask, .0, circleMask))*.2;
+
+                gl_FragColor = vec4(color,1.0);
+            }
+        </script>
+
+        <script id="fragmentShader2" type="x-shader/x-fragment">
+            precision mediump float;
+
+            uniform vec2 u_resolution;
+            uniform float u_time;
+
+            varying vec2 vUV;
+
+            vec3 chroma(vec2 st, float t) {
+                vec3 r;
+                
+                vec3 colors[6];
+
+                colors[2] =  vec3(0, 0.807, 0.865);
+                colors[3] =  vec3(1);
+                colors[4] =  vec3(0.886, 0.886, 0.2037);
+                colors[5] =  vec3(0.514, 0.0092, 0.0092);
+                    
+                float diagonal = 0.2;
+                float grad = mod(st.x*1. - st.y + t,3.000);
+                grad = grad * 14.;
+                
+                int index = int(floor(grad));
+                
+                if(index == 0){
+                    r = mix(colors[0], colors[1],mod(grad,1.));
+                } else if (index == 1) {
+                    r = mix(colors[1], colors[2],mod(grad,1.));
+                } else if (index == 2) {
+                    r = mix(colors[2], colors[3],mod(grad,1.));
+                } else if (index == 3) {
+                    r = mix(colors[3], colors[4],mod(grad,1.));
+                } else if (index == 4) {
+                    r = mix(colors[4], colors[5],mod(grad,1.));
+                } else if (index == 5) {
+                    r = mix(colors[5], colors[0],mod(grad,1.));
+                }
+                
+                return r;
+            }
+
+            float noisyGrad(vec2 st, float t) {
+                float r;
+                float stepFactor = mod(floor(t*8.), 5.) + 2.;
+                
+                vec2 step = floor(st*32.0)/32.;
+                r = mod(step.x + step.y * stepFactor + t, 1.0);
+                return r;
+            }
+
+            float circle(vec2 st, vec2 off) {
+                //We are choosing point at off (by st - off) and calculating distance from there for the current pixel using length() 
+                //smoothstep stuff is a bit complicated look it up and see why this works as it does
+                float radius = 0.2;
+                return 1.0 - smoothstep(radius * 0.2, radius, length(floor((st - off) * 32.0) / 32.0));
+            }
+
+            void main() {
+                
+                vec2 st = gl_FragCoord.xy/u_resolution.xy;
+                st.x *= u_resolution.x/u_resolution.y;
+
+                vec3 color = vec3(0.);
+                
+                vec3 colorA = vec3(0.);
+                vec3 colorB = vec3(0.);
+                
+                ///noisy gradient
+                float noisy = noisyGrad(st,u_time);
+                
+                ///chroma aberration
+                vec3 chromaGradient = chroma(st, u_time);
+                
+                float pct = abs(sin(u_time) / 2.0);
+                
+                colorA = vec3(noisy*noisy);
+                colorB = chromaGradient;
+
+                //'k' is mix value between gradient and chromatic aberration, meaning if it's 0 only gradient will be shown
+                float k = 1.0;
+                
+                //We multiply k by 0 if it isn't inside "any" circle
+                //otherwise multiply k to 1 if it's fully inside and if it's on the edge multiply by value 0 to 1
+                k *= max(max(max(max(max(
+                circle(st, vec2(0.2, 0.8)), 
+                circle(st, vec2(0.4, 0.2))), 
+                circle(st, vec2(1.6, 0.1))), 
+                circle(st, vec2(1.5, 0.7))), 
+                circle(st, vec2(1.0, 0.3))),
+                circle(st, vec2(0.75, 0.65)));
+                
+                color = mix(colorA, colorB, k);
+                color = colorB;
+
+                gl_FragColor = vec4(color, 1.0);
+            }
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js"></script>
+
+    <script>    
+    			
+            var container;
+            var camera, scene, renderer, clock;
+            var uniforms;
+
+            init();
+            animate();
+
+            function init() {
+                container = document.getElementById('container');
+                container1 = document.getElementById('container1');
+                container2 = document.getElementById('container2'); // New container for the second shader
+
+                camera = new THREE.Camera();
+                camera.position.z = 1;
+
+                scene = new THREE.Scene();
+                scene1 = new THREE.Scene();
+                scene2 = new THREE.Scene();
+                clock = new THREE.Clock();
+
+                var geometry = new THREE.PlaneBufferGeometry(2, 2);
+                var geometry1 = new THREE.PlaneBufferGeometry(2, 2);
+                var geometry2 = new THREE.PlaneBufferGeometry(2, 2);
+
+                uniforms = {
+                    u_time: { type: "f", value: 1.0 },
+                    u_resolution: { type: "v2", value: new THREE.Vector2() },
+                    u_mouse: { type: "v2", value: new THREE.Vector2() }
+                };
+
+                var material = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: document.getElementById('vertexShader').textContent,
+                    fragmentShader: document.getElementById('fragmentShader').textContent
+                });
+
+                var material1 = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: document.getElementById('vertexShader1').textContent,
+                    fragmentShader: document.getElementById('fragmentShader1').textContent
+                });
+
+                var material2 = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: document.getElementById('vertexShader2').textContent,
+                    fragmentShader: document.getElementById('fragmentShader2').textContent
+                });
+
+                var mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
+
+                var mesh1 = new THREE.Mesh(geometry1, material1);
+                scene1.add(mesh1);
+
+                var mesh2 = new THREE.Mesh(geometry2, material2);
+                scene2.add(mesh2);
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setPixelRatio(window.devicePixelRatio);
+
+                renderer1 = new THREE.WebGLRenderer();
+                renderer1.setPixelRatio(window.devicePixelRatio);
+
+                renderer2 = new THREE.WebGLRenderer();
+                renderer2.setPixelRatio(window.devicePixelRatio);
+                
+
+                // Set the width to match the container and adjust the height as needed
+                var canvasWidth = container.clientWidth;
+                var canvasHeight = container.clientHeight * 10; // Increase the height by a factor, adjust as needed
+
+                var canvasWidth1 = container1.clientWidth;
+                var canvasHeight1 = container1.clientHeight * 10; // Increase the height by a factor, adjust as needed
+
+                var canvasWidth2 = container2.clientWidth;
+                var canvasHeight2 = container2.clientHeight * 10; // Increase the height by a factor, adjust as needed
+
+
+                renderer.setSize(canvasWidth, canvasHeight);
+                renderer1.setSize(canvasWidth, canvasHeight);
+                renderer2.setSize(canvasWidth, canvasHeight);
+
+                container.appendChild(renderer.domElement);
+                container1.appendChild(renderer1.domElement);
+                container2.appendChild(renderer2.domElement);
+
+
+                onWindowResize();
+                window.addEventListener('resize', onWindowResize, false);
+
+                // Adjust mouse coordinates relative to the container
+                container.onmousemove = function (e) {
+                    var rect = container.getBoundingClientRect();
+                    uniforms.u_mouse.value.x = (e.clientX - rect.left) / canvasWidth; // Use canvasWidth here
+                    uniforms.u_mouse.value.y = (e.clientY - rect.top) / canvasHeight; // Use canvasHeight here
+                }
+            }
+
+            function onWindowResize(event) {
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer1.setSize(container1.clientWidth, container1.clientHeight);
+                renderer2.setSize(container2.clientWidth, container2.clientHeight);
+                uniforms.u_resolution.value.x = container.clientWidth;
+                uniforms.u_resolution.value.y = container.clientHeight;
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                render();
+            }
+
+            function render() {
+                uniforms.u_time.value += clock.getDelta();
+                renderer.render(scene, camera);
+                renderer1.render(scene1, camera);
+                renderer2.render(scene2, camera);
+            }
+    </script>
+</body>
+</html>
