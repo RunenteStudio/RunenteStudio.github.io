@@ -66,29 +66,34 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
 </head>
 <body style="background-color: #F1EFEC;">
-    <P> Algunos de nuestros shaders </P>
     <div class="container" style="font-size: 20px;">
         <div class="row">
-            <div class="text-center col-sm-4 mb-2">
+            <div class="text-center col mb-2">
                 <div id="container">
-                    <h1 style="font-size: 20px;">Wavepointer</h1>
-                    <!-- Your shader content here -->
+                   
+                    <!-- <h1 style="font-size: 20px;">Wavepointer</h1> -->
                 </div>
             </div>
-            <div class="text-center col-sm-4 mb-2">
+            <div class="text-center col mb-2">
                 <div id="container1">
-                    <h1 style="font-size: 20px;">Scanner</h1>
-                    <!-- Your shader content here -->
-                </div>
-            </div>
-            <div class="text-center col-sm-4 mb-2">
-                <div id="container2">
-                    <h1 style="font-size: 20px;">Line</h1>
-                    <!-- Your shader content here -->
+      
+                    <!-- <h1 style="font-size: 20px;">Scanner</h1> -->
                 </div>
             </div>
         </div>
+        <div class="row">
+            <div class="text-center col mb-2">
+                <div id="container2">
+                    <!-- <h1 style="font-size: 20px;">Line</h1> -->
+                </div>
+            </div>
 
+            <div class="text-center col mb-2">
+                <div id="containe32">
+                    <!-- <h1 style="font-size: 20px;">Line</h1> -->
+                </div>
+            </div>
+        </div>
         
         <div class="row">
                 <a class="button fixed-bottom " href="/index.html">Página principal</a>
@@ -454,11 +459,23 @@
             }
 
             function onWindowResize(event) {
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                renderer1.setSize(container1.clientWidth, container1.clientHeight);
-                renderer2.setSize(container2.clientWidth, container2.clientHeight);
-                uniforms.u_resolution.value.x = container.clientWidth;
-                uniforms.u_resolution.value.y = container.clientHeight;
+                    var containerWidth = container.clientWidth;
+
+                    // Calculate the corresponding 16:9 height for the container width
+                    var containerHeight = (containerWidth / 16) * 9;
+
+                    renderer.setSize(containerWidth, containerHeight);
+
+                    containerWidth = container1.clientWidth;
+                    containerHeight = (containerWidth / 16) * 9;
+                    renderer1.setSize(containerWidth, containerHeight);
+
+                    containerWidth = container2.clientWidth;
+                    containerHeight = (containerWidth / 16) * 9;
+                    renderer2.setSize(containerWidth, containerHeight);
+
+                    uniforms.u_resolution.value.x = containerWidth;
+                    uniforms.u_resolution.value.y = containerHeight;
             }
 
             function animate() {
