@@ -62,21 +62,20 @@
             margin-bottom: 20px;
         }
 
+
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
 </head>
 <body style="background-color: #F1EFEC;">
-    <div class="container" style="font-size: 20px;">
+    <div class="container shader-container" style="font-size: 20px;">
         <div class="row">
             <div class="text-center col mb-2">
-                <div id="container">
-                   
+                <div id="container">                
                     <!-- <h1 style="font-size: 20px;">Wavepointer</h1> -->
                 </div>
             </div>
             <div class="text-center col mb-2">
                 <div id="container1">
-      
                     <!-- <h1 style="font-size: 20px;">Scanner</h1> -->
                 </div>
             </div>
@@ -459,23 +458,22 @@
             }
 
             function onWindowResize(event) {
-                    var containerWidth = container.clientWidth;
+                var aspectRatio = 16 / 9; // Use a fixed aspect ratio (16:9)
+                var containerWidth = container.clientWidth;
+                var containerHeight = containerWidth / aspectRatio; // Calculate height based on the aspect ratio
 
-                    // Calculate the corresponding 16:9 height for the container width
-                    var containerHeight = (containerWidth / 16) * 9;
+                renderer.setSize(containerWidth, containerHeight);
 
-                    renderer.setSize(containerWidth, containerHeight);
+                containerWidth = container1.clientWidth;
+                containerHeight = containerWidth / aspectRatio; // Use the same aspect ratio for container1
+                renderer1.setSize(containerWidth, containerHeight);
 
-                    containerWidth = container1.clientWidth;
-                    containerHeight = (containerWidth / 16) * 9;
-                    renderer1.setSize(containerWidth, containerHeight);
+                containerWidth = container2.clientWidth;
+                containerHeight = containerWidth / aspectRatio; // Use the same aspect ratio for container2
+                renderer2.setSize(containerWidth, containerHeight);
 
-                    containerWidth = container2.clientWidth;
-                    containerHeight = (containerWidth / 16) * 9;
-                    renderer2.setSize(containerWidth, containerHeight);
-
-                    uniforms.u_resolution.value.x = containerWidth;
-                    uniforms.u_resolution.value.y = containerHeight;
+                uniforms.u_resolution.value.x = containerWidth;
+                uniforms.u_resolution.value.y = containerHeight;
             }
 
             function animate() {
