@@ -71,7 +71,7 @@ a, button, input, select {
 	background: rgba(0,0,0,0.7);
 }
 
-	#overlay button {
+#overlay button {
 		background: transparent;
 		border: 0;
 		border: 1px solid rgb(255, 255, 255);
@@ -81,6 +81,13 @@ a, button, input, select {
 		text-transform: uppercase;
 		cursor: pointer;
 	}
+iframe:focus {
+  outline: none;
+}
+
+iframe[seamless] {
+  display: block;
+}
 
 #notSupported {
 	width: 50%;
