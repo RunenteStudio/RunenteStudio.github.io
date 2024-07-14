@@ -39,8 +39,8 @@
                 float phase = tmpPos.w;
 
                 phase = mod( ( phase + delta +
-                    length( velocity.xz ) * delta * 3. +
-                    max( velocity.y, 0.0 ) * delta * 6. ), 62.83 );
+                    length( velocity.xz ) * delta * .0000003 +
+                    max( velocity.y, 0.0 ) * delta * .0000006 ), 62.83 );
 
                 gl_FragColor = vec4( position + velocity * delta * 20. , phase );
 
@@ -80,11 +80,11 @@
             const float PI_2 = PI * 2.0;
             // const float VISION = PI * 0.55;
 
-            float zoneRadius = 4.0;
-            float zoneRadiusSquared = 16.0;
+            float zoneRadius = 0.4;
+            float zoneRadiusSquared = 0.16;
 
-            float separationThresh = 0.045;
-            float alignmentThresh = 0.065;
+            float separationThresh = 0.0045;
+            float alignmentThresh = 0.0065;
 
             float centerForce;
 
@@ -107,9 +107,9 @@
                         factor = 0.;
                         break;
                     case 1:
-                        sepDist = 10. ; //
-                        aliDist = 1.; //
-                        cohDist = 1. ; //
+                        sepDist = .1 ; //
+                        aliDist = .002; //
+                        cohDist = .003 ; //
                         factor = 0.;
                         break;
                     case 2:
@@ -178,7 +178,7 @@
                 dist = length( dir );
                 distSquared = dist * dist;
 
-                float preyRadius = 150.0;
+                float preyRadius = 1.500;
                 float preyRadiusSq = preyRadius * preyRadius;
 
 
@@ -198,7 +198,7 @@
                     centerForce = 5.;
                      
                 } else if(mode == 1.0){
-                    centerForce = 10.;
+                    centerForce = 0.03;
                     vec3 vel =  ((texture2D( fig2, uv ).xyz * 80.0 - 40.0) - selfPosition) * 0.001;
                     velTarget = velTarget * (1.0 - fadeSq) + vel * fadeSq;
                      
@@ -246,7 +246,7 @@
                         dir = birdPosition - selfPosition;
                         dist = length( dir );
 
-                        if ( dist < 0.0001 ) continue;
+                        if ( dist < 0.1 ) continue;
 
                         distSquared = dist * dist;
 
@@ -351,7 +351,7 @@
 
                 if ( birdVertex == 4.0 || birdVertex == 5.0  || birdVertex == 7.0  || birdVertex == 8.0 ) {
                     // flap wings
-                    newPosition.y = sin( tmpPos.w ) * 0.5;
+                    newPosition.y = sin( tmpPos.w ) * 0.01;
                 }
 
                 newPosition = mat3( modelMatrix ) * newPosition;
@@ -608,7 +608,7 @@
 
                     }
 
-                    this.scale( 0.06, 0.06, 0.06 );
+                    this.scale( 0.0012, 0.0012, 0.0012 );
 
                 }
 
@@ -624,7 +624,7 @@
 
             let fade = 0.0;
 
-            let speed = 20.0;
+            let speed = 0.2;
             let speedTarget = 0.0;
 
             let modeDelayed = 0.0;
@@ -634,7 +634,7 @@
             let windowHalfX = window.innerWidth / 2;
             let windowHalfY = window.innerHeight / 2;
 
-            const BOUNDS = 1, BOUNDS_HALF = BOUNDS / 2;
+            const BOUNDS = 0.8, BOUNDS_HALF = BOUNDS / 2;
 
             let last = performance.now();
 
@@ -658,15 +658,15 @@
 
                 camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
                 camera.position.x = 0;
-                camera.position.y = -15;
-                camera.position.z = 90;
+                camera.position.y = -.3;
+                camera.position.z = 1.8;
 
                 camera.rotation.x = .3;
                 camera.rotation.y = .0;
 
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color( 0x444444 );
-                scene.fog = new THREE.Fog( 0x000C05, -80, 350 );
+                scene.fog = new THREE.Fog( 0x000C05, -1.6, 7 );
 
 
 
@@ -705,8 +705,8 @@
                     '../models/escenario7.glb',
                     function ( gltf ) {
 
-                        gltf.scene.scale.set(9.0, 9.0, 9.0);
-                        gltf.scene.position.set(0.0, -30.0, -0.0);
+                        gltf.scene.scale.set(0.18, 0.18, 0.18);
+                        gltf.scene.position.set(0.0, -0.60, -0.0);
 
                         scene.add( gltf.scene );
 
@@ -733,7 +733,7 @@
 
 
                 const effectController = {
-                    separation: 20.0,
+                    separation: 0.0,
                     alignment: 0.0,
                     cohesion: 0.0,
                     freedom: 0.0
@@ -833,11 +833,11 @@
                 velocityUniforms[ 'time' ] = { value: 1.0 };
                 velocityUniforms[ 'delta' ] = { value: 0.0 };
                 velocityUniforms[ 'testing' ] = { value: 1.0 };
-                velocityUniforms[ 'separationDistance' ] = { value: 1.0 };
-                velocityUniforms[ 'alignmentDistance' ] = { value: 1.0 };
-                velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
+                velocityUniforms[ 'separationDistance' ] = { value: 0.0 };
+                velocityUniforms[ 'alignmentDistance' ] = { value: 0.0 };
+                velocityUniforms[ 'cohesionDistance' ] = { value: 0.0 };
                 velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
-                velocityUniforms[ 'speed' ] = { value: 1.0 };
+                velocityUniforms[ 'speed' ] = { value: 0.0 };
                 velocityUniforms[ 'mode' ] = { value: 1.0 };
                 velocityUniforms[ 'fade' ] = { value: 0.0 };
                 velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
@@ -879,7 +879,7 @@
                     'statColor04': { value: new THREE.TextureLoader().load('../images/viz4Color.png') },
                     'time': { value: 1.0 },
                     'fade': { value: 0.0 },
-                    'mode': { value: 0.0 },
+                    'mode': { value: 1.0 },
                     'prevMode': { value: 0.0 },
                     'delta': { value: 0.0 }
                 };
@@ -931,9 +931,9 @@
                     const y = Math.random() - 0.5;
                     const z = Math.random() - 0.5;
 
-                    theArray[ k + 0 ] = x * 1;
-                    theArray[ k + 1 ] = y * 1;
-                    theArray[ k + 2 ] = z * 1;
+                    theArray[ k + 0 ] = x * .01;
+                    theArray[ k + 1 ] = y * .01;
+                    theArray[ k + 2 ] = z * .01;
                     theArray[ k + 3 ] = 1;
 
                 }
@@ -983,22 +983,22 @@
 
                 switch( ~ ~ modeRef){
                     case 0:
-                        speedTarget = 2.0;
+                        speedTarget = 0.01;
                         break;
                     case 1:
-                        speedTarget = 1.0;
+                        speedTarget = 0.01;
                         break;
                     case 2:
-                        speedTarget = 7.0;
+                        speedTarget = 0.07;
                         break;
                     case 3:
-                        speedTarget = 7.0;
+                        speedTarget = 0.07;
                         break;
                     case 4:
-                        speedTarget = 7.0;
+                        speedTarget = 0.07;
                         break;
                     case 5:
-                        speedTarget = 7.0;
+                        speedTarget = 0.07;
                         break;
                 }
 
