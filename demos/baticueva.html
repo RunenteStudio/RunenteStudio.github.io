@@ -39,8 +39,8 @@
                 float phase = tmpPos.w;
 
                 phase = mod( ( phase + delta +
-                    length( velocity.xz ) * delta * .0000003 +
-                    max( velocity.y, 0.0 ) * delta * .0000006 ), 62.83 );
+                    length( velocity.xz ) * delta * 3. +
+                    max( velocity.y, 0.0 ) * delta * 6. ), 62.83 );
 
                 gl_FragColor = vec4( position + velocity * delta * 20. , phase );
 
@@ -80,11 +80,11 @@
             const float PI_2 = PI * 2.0;
             // const float VISION = PI * 0.55;
 
-            float zoneRadius = 0.4;
-            float zoneRadiusSquared = 0.16;
+            float zoneRadius = 40.0;
+            float zoneRadiusSquared = 1600.0;
 
-            float separationThresh = 0.0045;
-            float alignmentThresh = 0.0065;
+            float separationThresh = 0.45;
+            float alignmentThresh = 0.65;
 
             float centerForce;
 
@@ -107,9 +107,9 @@
                         factor = 0.;
                         break;
                     case 1:
-                        sepDist = .1 ; //
-                        aliDist = .002; //
-                        cohDist = .003 ; //
+                        sepDist = 40.; //
+                        aliDist = 10.; //
+                        cohDist = 10.; //
                         factor = 0.;
                         break;
                     case 2:
@@ -178,7 +178,7 @@
                 dist = length( dir );
                 distSquared = dist * dist;
 
-                float preyRadius = 1.500;
+                float preyRadius = 150.0;
                 float preyRadiusSq = preyRadius * preyRadius;
 
 
@@ -198,8 +198,8 @@
                     centerForce = 5.;
                      
                 } else if(mode == 1.0){
-                    centerForce = 0.03;
-                    vec3 vel =  ((texture2D( fig2, uv ).xyz * 80.0 - 40.0) - selfPosition) * 0.001;
+                    centerForce = 10.;
+                    vec3 vel =  ((texture2D( fig2, uv ).xyz * 800.0 - 400.0) - selfPosition) * 0.01;
                     velTarget = velTarget * (1.0 - fadeSq) + vel * fadeSq;
                      
                 } else if(mode == 2.0){
@@ -246,7 +246,7 @@
                         dir = birdPosition - selfPosition;
                         dist = length( dir );
 
-                        if ( dist < 0.1 ) continue;
+                        if ( dist < 0.0001 ) continue;
 
                         distSquared = dist * dist;
 
@@ -342,7 +342,7 @@
             void main() {
 
                 vec4 tmpPos = texture2D( texturePosition, reference );
-                vec3 pos = tmpPos.xyz;
+                vec3 pos = tmpPos.xyz * 0.01;
 
                 vec3 velocity = normalize(texture2D( textureVelocity, reference ).xyz);
 
@@ -351,7 +351,7 @@
 
                 if ( birdVertex == 4.0 || birdVertex == 5.0  || birdVertex == 7.0  || birdVertex == 8.0 ) {
                     // flap wings
-                    newPosition.y = sin( tmpPos.w ) * 0.01;
+                    newPosition.y = sin( tmpPos.w ) * 5.;
                 }
 
                 newPosition = mat3( modelMatrix ) * newPosition;
@@ -440,7 +440,7 @@
                 vec3 mixColor = mix(color2, color1, fade);
 
                 vColor = vec4( mixColor, 1.0 );
-                gl_Position = projectionMatrix *  viewMatrix  * vec4( newPosition, 1.0 );
+                gl_Position = projectionMatrix *  viewMatrix  * vec4( newPosition, 1.0 ) * 100.0;
             }
 
         </script>
@@ -457,9 +457,9 @@
             void main() {
 
                 vec3 z2 =
-                ( 80. - z ) / 80.
+                ( 800. - z ) / 800.
                 * vColor.xyz
-                + ( y + 10.  ) / 100.;
+                + ( y + 100.  ) / 1000.;
                 gl_FragColor = vec4( z2, 1. );
 
             }
@@ -608,7 +608,7 @@
 
                     }
 
-                    this.scale( 0.0012, 0.0012, 0.0012 );
+                    this.scale( 0.6, 0.6, 0.6 );
 
                 }
 
@@ -617,14 +617,14 @@
             //
 
             let container;
-            let camera, scene, renderer;
+            let camera, scene, sceneScaled, renderer;
             let mouseX = 0, mouseY = 0;
 
             const loader = new GLTFLoader();
 
             let fade = 0.0;
 
-            let speed = 0.2;
+            let speed = 20.0;
             let speedTarget = 0.0;
 
             let modeDelayed = 0.0;
@@ -634,7 +634,7 @@
             let windowHalfX = window.innerWidth / 2;
             let windowHalfY = window.innerHeight / 2;
 
-            const BOUNDS = 0.8, BOUNDS_HALF = BOUNDS / 2;
+            const BOUNDS = 10, BOUNDS_HALF = BOUNDS / 2;
 
             let last = performance.now();
 
@@ -658,15 +658,17 @@
 
                 camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
                 camera.position.x = 0;
-                camera.position.y = -.3;
-                camera.position.z = 1.8;
+                camera.position.y = -1.50;
+                camera.position.z = 9.00;
 
                 camera.rotation.x = .3;
                 camera.rotation.y = .0;
 
                 scene = new THREE.Scene();
+                sceneScaled = new THREE.Scene();
+
                 scene.background = new THREE.Color( 0x444444 );
-                scene.fog = new THREE.Fog( 0x000C05, -1.6, 7 );
+                scene.fog = new THREE.Fog( 0x000C05, -800, 3500 );
 
 
 
@@ -705,8 +707,8 @@
                     '../models/escenario7.glb',
                     function ( gltf ) {
 
-                        gltf.scene.scale.set(0.18, 0.18, 0.18);
-                        gltf.scene.position.set(0.0, -0.60, -0.0);
+                        gltf.scene.scale.set(90.0, 90.0, 90.0);
+                        gltf.scene.position.set(0.0, -300.0, -0.0);
 
                         scene.add( gltf.scene );
 
@@ -733,7 +735,7 @@
 
 
                 const effectController = {
-                    separation: 0.0,
+                    separation: 20.0,
                     alignment: 0.0,
                     cohesion: 0.0,
                     freedom: 0.0
@@ -833,11 +835,11 @@
                 velocityUniforms[ 'time' ] = { value: 1.0 };
                 velocityUniforms[ 'delta' ] = { value: 0.0 };
                 velocityUniforms[ 'testing' ] = { value: 1.0 };
-                velocityUniforms[ 'separationDistance' ] = { value: 0.0 };
-                velocityUniforms[ 'alignmentDistance' ] = { value: 0.0 };
-                velocityUniforms[ 'cohesionDistance' ] = { value: 0.0 };
+                velocityUniforms[ 'separationDistance' ] = { value: 1.0 };
+                velocityUniforms[ 'alignmentDistance' ] = { value: 1.0 };
+                velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
                 velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
-                velocityUniforms[ 'speed' ] = { value: 0.0 };
+                velocityUniforms[ 'speed' ] = { value: 1.0 };
                 velocityUniforms[ 'mode' ] = { value: 1.0 };
                 velocityUniforms[ 'fade' ] = { value: 0.0 };
                 velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
@@ -879,7 +881,7 @@
                     'statColor04': { value: new THREE.TextureLoader().load('../images/viz4Color.png') },
                     'time': { value: 1.0 },
                     'fade': { value: 0.0 },
-                    'mode': { value: 1.0 },
+                    'mode': { value: 0.0 },
                     'prevMode': { value: 0.0 },
                     'delta': { value: 0.0 }
                 };
@@ -909,7 +911,7 @@
                 for ( let k = 0, kl = theArray.length; k < kl; k += 4 ) {
 
                     const x = Math.random() * BOUNDS - BOUNDS_HALF;
-                    const y = Math.random() * BOUNDS - BOUNDS_HALF ;
+                    const y = Math.random() * BOUNDS - BOUNDS_HALF + 900.;
                     const z = Math.random() * BOUNDS - BOUNDS_HALF;
 
                     theArray[ k + 0 ] = x;
@@ -931,9 +933,9 @@
                     const y = Math.random() - 0.5;
                     const z = Math.random() - 0.5;
 
-                    theArray[ k + 0 ] = x * .01;
-                    theArray[ k + 1 ] = y * .01;
-                    theArray[ k + 2 ] = z * .01;
+                    theArray[ k + 0 ] = x * 10;
+                    theArray[ k + 1 ] = y * 10;
+                    theArray[ k + 2 ] = z * 10;
                     theArray[ k + 3 ] = 1;
 
                 }
@@ -983,22 +985,22 @@
 
                 switch( ~ ~ modeRef){
                     case 0:
-                        speedTarget = 0.01;
+                        speedTarget = 2.0;
                         break;
                     case 1:
-                        speedTarget = 0.01;
+                        speedTarget = 10.0;
                         break;
                     case 2:
-                        speedTarget = 0.07;
+                        speedTarget = 7.0;
                         break;
                     case 3:
-                        speedTarget = 0.07;
+                        speedTarget = 7.0;
                         break;
                     case 4:
-                        speedTarget = 0.07;
+                        speedTarget = 7.0;
                         break;
                     case 5:
-                        speedTarget = 0.07;
+                        speedTarget = 7.0;
                         break;
                 }
 
@@ -1035,7 +1037,11 @@
                 birdUniforms[ 'texturePosition' ].value = gpuCompute.getCurrentRenderTarget( positionVariable ).texture;
                 birdUniforms[ 'textureVelocity' ].value = gpuCompute.getCurrentRenderTarget( velocityVariable ).texture;
 
-                renderer.render( scene, camera );
+                sceneScaled.clear();
+                sceneScaled.copy(scene);
+                sceneScaled.scale.set(0.01, 0.01, 0.01);
+
+                renderer.render( sceneScaled, camera );
 
             }
 
