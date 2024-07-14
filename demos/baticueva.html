@@ -342,7 +342,7 @@
             void main() {
 
                 vec4 tmpPos = texture2D( texturePosition, reference );
-                vec3 pos = tmpPos.xyz * 0.01;
+                vec3 pos = tmpPos.xyz * 0.001;
 
                 vec3 velocity = normalize(texture2D( textureVelocity, reference ).xyz);
 
@@ -440,7 +440,7 @@
                 vec3 mixColor = mix(color2, color1, fade);
 
                 vColor = vec4( mixColor, 1.0 );
-                gl_Position = projectionMatrix *  viewMatrix  * vec4( newPosition, 1.0 ) * 100.0;
+                gl_Position = projectionMatrix *  viewMatrix  * vec4( newPosition, 1.0 ) * 1000.0;
             }
 
         </script>
@@ -656,10 +656,10 @@
                 container = document.createElement( 'div' );
                 document.body.appendChild( container );
 
-                camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
+                camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.01, 5000 );
                 camera.position.x = 0;
-                camera.position.y = -1.50;
-                camera.position.z = 9.00;
+                camera.position.y = -0.150;
+                camera.position.z = 0.90;
 
                 camera.rotation.x = .3;
                 camera.rotation.y = .0;
@@ -1039,7 +1039,7 @@
 
                 sceneScaled.clear();
                 sceneScaled.copy(scene);
-                sceneScaled.scale.set(0.01, 0.01, 0.01);
+                sceneScaled.scale.set(0.001, 0.001, 0.001);
 
                 renderer.render( sceneScaled, camera );
 
