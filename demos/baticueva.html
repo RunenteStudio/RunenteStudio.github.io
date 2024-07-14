@@ -108,8 +108,8 @@
                         break;
                     case 1:
                         sepDist = 40.; //
-                        aliDist = 0.; //
-                        cohDist = 0.; //
+                        aliDist = 10.; //
+                        cohDist = 10.; //
                         factor = 0.;
                         break;
                     case 2:
@@ -481,10 +481,9 @@
 
             import * as THREE from 'three';
 
-            import Stats from 'three/addons/libs/stats.module.js';
-            import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
             import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
             import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+            import { XRButton } from 'three/addons/webxr/XRButton.js';
 
             import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js';
 
@@ -617,7 +616,7 @@
 
             //
 
-            let container, stats;
+            let container;
             let camera, scene, renderer;
             let mouseX = 0, mouseY = 0;
 
@@ -630,7 +629,7 @@
 
             let modeDelayed = 0.0;
             let prevMode = 0.0;
-            let modeRef = 0.0;
+            let modeRef = 1.0;
 
             let windowHalfX = window.innerWidth / 2;
             let windowHalfY = window.innerHeight / 2;
@@ -685,13 +684,18 @@
                 renderer = new THREE.WebGLRenderer();
                 renderer.setPixelRatio( window.devicePixelRatio );
                 renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer.setAnimationLoop( animate );
+                
                 renderer.useLegacyLights = false;
+                
+                renderer.xr.enabled = true;
+
                 container.appendChild( renderer.domElement );
 
-                initComputeRenderer();
+                document.body.appendChild( XRButton.createButton( renderer ) );
 
-                stats = new Stats();
-                container.appendChild( stats.dom );
+
+                initComputeRenderer();
 
                 container.style.touchAction = 'none';
                 container.addEventListener( 'pointermove', onPointerMove );
@@ -729,33 +733,12 @@
                 window.addEventListener( 'resize', onWindowResize );
 
 
-                const gui = new GUI();
-
                 const effectController = {
                     separation: 20.0,
                     alignment: 0.0,
                     cohesion: 0.0,
                     freedom: 0.0
                 };
-
-                const valuesChanger = function () {
-
-                    velocityUniforms[ 'separationDistance' ].value = effectController.separation;
-                    velocityUniforms[ 'alignmentDistance' ].value = effectController.alignment;
-                    velocityUniforms[ 'cohesionDistance' ].value = effectController.cohesion;
-                    velocityUniforms[ 'freedomFactor' ].value = effectController.freedom;
-
-                };
-
-                valuesChanger();
-
-                gui.add( effectController, 'separation', 0.0, 100.0, 1.0 ).onChange( valuesChanger );
-                gui.add( effectController, 'alignment', 0.0, 100, 0.001 ).onChange( valuesChanger );
-                gui.add( effectController, 'cohesion', 0.0, 100, 0.025 ).onChange( valuesChanger );
-                gui.add( effectController, 'freedom', 0.0, 1.0, 0.025 ).onChange( valuesChanger );
-                gui.close();
-
-
 
                 window.addEventListener(
                   "keydown",
@@ -856,7 +839,7 @@
                 velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
                 velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
                 velocityUniforms[ 'speed' ] = { value: 1.0 };
-                velocityUniforms[ 'mode' ] = { value: 0.0 };
+                velocityUniforms[ 'mode' ] = { value: 1.0 };
                 velocityUniforms[ 'fade' ] = { value: 0.0 };
                 velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
 
@@ -985,7 +968,6 @@
 
                 requestAnimationFrame( animate );
                 render();
-                stats.update();
 
             }
 
