@@ -80,11 +80,11 @@
             const float PI_2 = PI * 2.0;
             // const float VISION = PI * 0.55;
 
-            float zoneRadius = 40.0;
-            float zoneRadiusSquared = 1600.0;
+            float zoneRadius = 4.0;
+            float zoneRadiusSquared = 16.0;
 
-            float separationThresh = 0.45;
-            float alignmentThresh = 0.65;
+            float separationThresh = 0.045;
+            float alignmentThresh = 0.065;
 
             float centerForce;
 
@@ -107,9 +107,9 @@
                         factor = 0.;
                         break;
                     case 1:
-                        sepDist = 40.; //
-                        aliDist = 10.; //
-                        cohDist = 10.; //
+                        sepDist = 10. ; //
+                        aliDist = 1.; //
+                        cohDist = 1. ; //
                         factor = 0.;
                         break;
                     case 2:
@@ -199,7 +199,7 @@
                      
                 } else if(mode == 1.0){
                     centerForce = 10.;
-                    vec3 vel =  ((texture2D( fig2, uv ).xyz * 800.0 - 400.0) - selfPosition) * 0.01;
+                    vec3 vel =  ((texture2D( fig2, uv ).xyz * 80.0 - 40.0) - selfPosition) * 0.001;
                     velTarget = velTarget * (1.0 - fadeSq) + vel * fadeSq;
                      
                 } else if(mode == 2.0){
@@ -351,7 +351,7 @@
 
                 if ( birdVertex == 4.0 || birdVertex == 5.0  || birdVertex == 7.0  || birdVertex == 8.0 ) {
                     // flap wings
-                    newPosition.y = sin( tmpPos.w ) * 5.;
+                    newPosition.y = sin( tmpPos.w ) * 0.5;
                 }
 
                 newPosition = mat3( modelMatrix ) * newPosition;
@@ -457,9 +457,9 @@
             void main() {
 
                 vec3 z2 =
-                ( 800. - z ) / 800.
+                ( 80. - z ) / 80.
                 * vColor.xyz
-                + ( y + 100.  ) / 1000.;
+                + ( y + 10.  ) / 100.;
                 gl_FragColor = vec4( z2, 1. );
 
             }
@@ -608,7 +608,7 @@
 
                     }
 
-                    this.scale( 0.6, 0.6, 0.6 );
+                    this.scale( 0.06, 0.06, 0.06 );
 
                 }
 
@@ -634,7 +634,7 @@
             let windowHalfX = window.innerWidth / 2;
             let windowHalfY = window.innerHeight / 2;
 
-            const BOUNDS = 10, BOUNDS_HALF = BOUNDS / 2;
+            const BOUNDS = 1, BOUNDS_HALF = BOUNDS / 2;
 
             let last = performance.now();
 
@@ -658,15 +658,15 @@
 
                 camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
                 camera.position.x = 0;
-                camera.position.y = -150;
-                camera.position.z = 900;
+                camera.position.y = -15;
+                camera.position.z = 90;
 
                 camera.rotation.x = .3;
                 camera.rotation.y = .0;
 
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color( 0x444444 );
-                scene.fog = new THREE.Fog( 0x000C05, -800, 3500 );
+                scene.fog = new THREE.Fog( 0x000C05, -80, 350 );
 
 
 
@@ -706,8 +706,8 @@
                     '../models/escenario7.glb',
                     function ( gltf ) {
 
-                        gltf.scene.scale.set(90.0, 90.0, 90.0);
-                        gltf.scene.position.set(0.0, -300.0, -0.0);
+                        gltf.scene.scale.set(9.0, 9.0, 9.0);
+                        gltf.scene.position.set(0.0, -30.0, -0.0);
 
                         scene.add( gltf.scene );
 
@@ -910,7 +910,7 @@
                 for ( let k = 0, kl = theArray.length; k < kl; k += 4 ) {
 
                     const x = Math.random() * BOUNDS - BOUNDS_HALF;
-                    const y = Math.random() * BOUNDS - BOUNDS_HALF + 900.;
+                    const y = Math.random() * BOUNDS - BOUNDS_HALF ;
                     const z = Math.random() * BOUNDS - BOUNDS_HALF;
 
                     theArray[ k + 0 ] = x;
@@ -932,9 +932,9 @@
                     const y = Math.random() - 0.5;
                     const z = Math.random() - 0.5;
 
-                    theArray[ k + 0 ] = x * 10;
-                    theArray[ k + 1 ] = y * 10;
-                    theArray[ k + 2 ] = z * 10;
+                    theArray[ k + 0 ] = x * 1;
+                    theArray[ k + 1 ] = y * 1;
+                    theArray[ k + 2 ] = z * 1;
                     theArray[ k + 3 ] = 1;
 
                 }
@@ -994,7 +994,7 @@
                         speedTarget = 2.0;
                         break;
                     case 1:
-                        speedTarget = 10.0;
+                        speedTarget = 1.0;
                         break;
                     case 2:
                         speedTarget = 7.0;
