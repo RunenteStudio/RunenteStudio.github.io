@@ -108,8 +108,8 @@
                         break;
                     case 1:
                         sepDist = 40.; //
-                        aliDist = 10.; //
-                        cohDist = 10.; //
+                        aliDist = 5.; //
+                        cohDist = 8.; //
                         factor = 0.;
                         break;
                     case 2:
@@ -183,7 +183,7 @@
 
 
                 // Attract flocks to the center
-                vec3 central = vec3( 0., 300., 0. );
+                vec3 central = vec3( 0., 500., 0. );
 
 
                 float fadeSq = clamp(fade * fade, 0.0, 1.0);
@@ -342,7 +342,7 @@
             void main() {
 
                 vec4 tmpPos = texture2D( texturePosition, reference );
-                vec3 pos = tmpPos.xyz / 333.0;
+                vec3 pos = tmpPos.xyz / 100.0;
 
                 vec3 velocity = normalize(texture2D( textureVelocity, reference ).xyz);
 
@@ -440,7 +440,7 @@
                 vec3 mixColor = mix(color2, color1, fade);
 
                 vColor = vec4( mixColor, 1.0 );
-                gl_Position = projectionMatrix *  viewMatrix  * vec4( newPosition, 1.0 ) * 333.0;
+                gl_Position = projectionMatrix *  viewMatrix  * vec4( newPosition, 1.0 ) * 100.0;
             }
 
         </script>
@@ -487,7 +487,7 @@
 
             import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js';
 
-            const WIDTH = 16;
+            const WIDTH = 32;
 
             const BIRDS = WIDTH * WIDTH;
 
@@ -658,8 +658,8 @@
 
                 camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.01, 5000 );
                 camera.position.x = 0;
-                camera.position.y = 2.50;
-                camera.position.z = 2.0;
+                camera.position.y = 9.50;
+                camera.position.z = 5.0;
 
                 camera.rotation.x = 0.0;
 
@@ -1009,7 +1009,7 @@
 
                 sceneScaled.clear();
                 sceneScaled.copy(scene);
-                sceneScaled.scale.set(0.003, 0.003, 0.003);
+                sceneScaled.scale.set(0.005, 0.005, 0.005);
 
                 renderer.render( sceneScaled, camera );
 
