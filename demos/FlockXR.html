@@ -183,7 +183,7 @@
 
 
                 // Attract flocks to the center
-                vec3 central = vec3( 0., 200., 0. );
+                vec3 central = vec3( 0., 50., 0. );
 
 
                 float fadeSq = clamp(fade * fade, 0.0, 1.0);
@@ -658,8 +658,8 @@
 
                 camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.01, 5000 );
                 camera.position.x = 0;
-                camera.position.y = 9.50;
-                camera.position.z = 5.0;
+                camera.position.y = 1.50;
+                camera.position.z = 3.0;
 
                 camera.rotation.x = 0.0;
 
@@ -1009,7 +1009,7 @@
 
                 sceneScaled.clear();
                 sceneScaled.copy(scene);
-                sceneScaled.scale.set(0.005, 0.005, 0.005);
+                sceneScaled.scale.set(0.004, 0.004, 0.004);
 
                 renderer.render( sceneScaled, camera );
 
