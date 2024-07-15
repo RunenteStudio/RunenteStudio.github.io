@@ -108,7 +108,7 @@
                         break;
                     case 1:
                         sepDist = 40.; //
-                        aliDist = 5.; //
+                        aliDist = 1.; //
                         cohDist = 8.; //
                         factor = 0.;
                         break;
@@ -198,7 +198,7 @@
                     centerForce = 5.;
                      
                 } else if(mode == 1.0){
-                    centerForce = 10.;
+                    centerForce = 5.;
                     vec3 vel =  ((texture2D( fig2, uv ).xyz * 800.0 - 400.0) - selfPosition) * 0.01;
                     velTarget = velTarget * (1.0 - fadeSq) + vel * fadeSq;
                      
@@ -471,8 +471,8 @@
         <script type="importmap">
           {
             "imports": {
-              "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
-              "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+              "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+              "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
             }
           }
         </script>
@@ -617,10 +617,8 @@
             //
 
             let container;
-            let camera, scene, sceneScaled, renderer;
+            let camera, scene, sceneScaled, disco, light, renderer;
             let mouseX = 0, mouseY = 0;
-
-            const loader = new GLTFLoader();
 
             let fade = 0.0;
 
@@ -667,9 +665,6 @@
                 sceneScaled = new THREE.Scene();
 
                 scene.background = new THREE.Color( 0x444444 );
-                scene.fog = new THREE.Fog( 0x000C05, -800, 3500 );
-
-
 
                 //////Control
 
@@ -685,10 +680,13 @@
                 renderer.setPixelRatio( window.devicePixelRatio );
                 renderer.setSize( window.innerWidth, window.innerHeight );
                 renderer.setAnimationLoop( animate );
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
                 
                 renderer.useLegacyLights = false;
                 
                 renderer.xr.enabled = true;
+
 
                 container.appendChild( renderer.domElement );
 
@@ -703,13 +701,6 @@
 
                 window.addEventListener( 'resize', onWindowResize );
 
-
-                const effectController = {
-                    separation: 20.0,
-                    alignment: 0.0,
-                    cohesion: 0.0,
-                    freedom: 0.0
-                };
 
                 window.addEventListener(
                   "keydown",
@@ -881,7 +872,7 @@
                 for ( let k = 0, kl = theArray.length; k < kl; k += 4 ) {
 
                     const x = Math.random() * BOUNDS - BOUNDS_HALF;
-                    const y = Math.random() * BOUNDS - BOUNDS_HALF + 900.;
+                    const y = Math.random() * BOUNDS - BOUNDS_HALF + 100.;
                     const z = Math.random() * BOUNDS - BOUNDS_HALF;
 
                     theArray[ k + 0 ] = x;
@@ -903,9 +894,9 @@
                     const y = Math.random() - 0.5;
                     const z = Math.random() - 0.5;
 
-                    theArray[ k + 0 ] = x * 10;
-                    theArray[ k + 1 ] = y * 10;
-                    theArray[ k + 2 ] = z * 10;
+                    theArray[ k + 0 ] = x * 1;
+                    theArray[ k + 1 ] = y * 1;
+                    theArray[ k + 2 ] = z * 1;
                     theArray[ k + 3 ] = 1;
 
                 }
@@ -958,7 +949,7 @@
                         speedTarget = 2.0;
                         break;
                     case 1:
-                        speedTarget = 10.0;
+                        speedTarget = 5.0;
                         break;
                     case 2:
                         speedTarget = 7.0;
