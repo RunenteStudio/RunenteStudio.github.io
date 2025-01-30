@@ -189,10 +189,10 @@ effectObject.scene.background = maskObj.imgTexture;
 function createSelfieSegmentation() {
 	const selfieSegmentation = new SelfieSegmentation({locateFile: (file) => {
 		console.log(file);
-		return `https://cdn.jsdelivr.net/npm/@mediapipe/hair_segmentation/${file}`;
+		return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
 	}});
 	selfieSegmentation.setOptions({
-		modelSelection: 1,
+		modelSelection: 0,
 	});
 	return selfieSegmentation
 }

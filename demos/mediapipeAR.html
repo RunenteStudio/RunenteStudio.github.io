@@ -1,73 +1,123 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="importmap">
-        {
-          "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-            "mindar-face-three":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+    <title>Hair Segmentation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mediapipe/0.3.1620248843/mediapipe.js"></script>
+    <style>
+        .container {
+            position: relative;
+            width: 640px;
+            height: 480px;
+            margin: 20px auto;
         }
-    }
-</script>
-<script type="module">
-  import * as THREE from 'three';
-  import { MindARThree } from 'mindar-face-three';
-  const mindarThree = new MindARThree({
-    container: document.querySelector("#container"),
-});
-  const {renderer, scene, camera} = mindarThree;
-  const light = new THREE.HemisphereLight( 0xffffff, 0xf7f4d5, 0.5 );
-  const directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
-  directionalLight.position.set(-3,4,1);
-
-  scene.add(light);
-  scene.add(directionalLight);
-
-  const faceMesh = mindarThree.addFaceMesh();
-  const faceMesh2 = mindarThree.addFaceMesh();
-
-  const textureShadow = new THREE.TextureLoader().load("/demos/faceAssets/shadowsThree.png");
-  const textureSpots = new THREE.TextureLoader().load("/demos/faceAssets/spotsThree.png");
-
-  faceMesh.material.map = textureShadow;
-  faceMesh.material.opacity = 0.2;
-  faceMesh.material.transparent = true;
-  faceMesh.material.needsUpdate = true;
-
-  faceMesh2.material.map = textureSpots;
-  faceMesh2.material.opacity = 0.2;
-  faceMesh2.material.transparent = true;
-  faceMesh2.material.needsUpdate = true;
-
-  scene.add(faceMesh);
-  scene.add(faceMesh2);
-
-  const start = async() => {
-    await mindarThree.start();
-    renderer.setAnimationLoop(() => {
-      renderer.render(scene, camera);
-  });
-}
-start();
-</script>
-
-<style>
-  body {
-    margin: 0;
-}
-#container {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-    overflow: hidden;
-}
-</style>
-
+        #webcam, #output {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        #output {
+            mix-blend-mode: screen;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 </head>
-
 <body>
-    <div id="container">
+    <div class="controls">
+        <button id="startBtn">Start Camera</button>
+        <button id="stopBtn">Stop Camera</button>
     </div>
+    <div class="container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="output"></canvas>
+    </div>
+
+    <script>
+        let videoElement = document.getElementById('webcam');
+        let canvasElement = document.getElementById('output');
+        let canvasCtx = canvasElement.getContext('2d');
+        let mediaStream = null;
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        // Initialize MediaPipe Hair Segmentation
+        const hairSegmentation = new MediaPipe.SelfieSegmentation({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+            }
+        });
+
+        hairSegmentation.setOptions({
+            modelSelection: 1,
+            selfieMode: true,
+        });
+
+        hairSegmentation.onResults(onResults);
+
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: 640,
+                        height: 480
+                    }
+                });
+                videoElement.srcObject = mediaStream;
+                videoElement.width = 640;
+                videoElement.height = 480;
+                canvasElement.width = 640;
+                canvasElement.height = 480;
+                requestAnimationFrame(predictWebcam);
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+            }
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+        }
+
+        async function predictWebcam() {
+            if (videoElement.srcObject) {
+                await hairSegmentation.send({image: videoElement});
+                requestAnimationFrame(predictWebcam);
+            }
+        }
+
+        function onResults(results) {
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Draw the segmentation mask
+            canvasCtx.globalCompositeOperation = 'source-over';
+            canvasCtx.fillStyle = 'rgba(255, 0, 255, 0.5)'; // Pink overlay for hair
+            
+            if (results.segmentationMask) {
+                canvasCtx.drawImage(
+                    results.segmentationMask,
+                    0, 0, canvasElement.width, canvasElement.height
+                );
+            }
+        }
+
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
+    </script>
 </body>
 </html>
