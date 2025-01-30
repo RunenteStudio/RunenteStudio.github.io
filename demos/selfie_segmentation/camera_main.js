@@ -192,7 +192,7 @@ function createSelfieSegmentation() {
 		return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
 	}});
 	selfieSegmentation.setOptions({
-		modelSelection: 0,
+		modelSelection: 1,
 	});
 	return selfieSegmentation
 }
