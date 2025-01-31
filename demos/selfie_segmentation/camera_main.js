@@ -31,7 +31,7 @@ if(ua.indexOf("iPhone") > 0 || ua.indexOf("Android") > 0 && ua.indexOf("Mobile")
 const video = document.createElement( "video" );
 video.playsInline = true;
 
-var deviceCamera
+var deviceCamera;
 var width;
 var height;
 if (isSP) {
