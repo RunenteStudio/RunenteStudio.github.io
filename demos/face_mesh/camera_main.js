@@ -15,11 +15,10 @@ import { GUI } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/lib
 const masks = { 
 	"mask 001": "/demos/faceAssets/threeFace.jpg", 
 	"mask 002": "./img/facepaint.pngblob",
-	"mask 003": "/demos/faceAssets/threeFace.jpg"
 };
 
-const skinColorMap = textureLoader.load("/demos/faceAssets/white.jpg");
-const skinNormalMap = textureLoader.load("/demos/faceAssets/normalmap.jpg");
+const skinColorMap = THREE.TextureLoader().load("/demos/faceAssets/white.jpg");
+const skinNormalMap = THREE.TextureLoader().load("/demos/faceAssets/normalmap.jpg");
 
 const params = {
 	masks: masks[ "mask 001" ],
@@ -89,7 +88,7 @@ async function loadMaskObject(path) {
 //const path = "./canonical_face_model.obj";
 const path = "./canonical_face_model.fbx";
 const maskObject = await loadMaskObject( path ).then((res) => res);
-const wrinkleObject = maskObject.clone()
+const wrinkleObject = await loadMaskObject( path ).then((res) => res);
 
 const skinMaterial = new THREE.MeshStandardMaterial();
 
