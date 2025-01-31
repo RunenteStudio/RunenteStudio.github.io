@@ -86,7 +86,7 @@ const path = "./canonical_face_model.fbx";
 const maskObject = await loadMaskObject( path ).then((res) => res);
 maskObject.children[0].material.map = new THREE.TextureLoader().load( masks[ "mask 001" ] );
 maskObject.children[0].material.transparent = true;
-//maskObject.children[0].material.blending = THREE.MultiplyBlending;
+maskObject.children[0].material.blending = THREE.MultiplyBlending;
 maskObject.scale.set(width, height, 1);
 maskObject.rotation.x = Math.PI;
 //////////////////////////////////////////////////
