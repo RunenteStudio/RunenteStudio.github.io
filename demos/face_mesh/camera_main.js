@@ -14,11 +14,8 @@ import { GUI } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/lib
 // https://github.com/google/mediapipe/blob/master/mediapipe/graphs/face_effect/data/facepaint.pngblob
 const masks = { 
 	"mask 001": "/demos/faceAssets/threeFace.jpg", 
-	"mask 002": "./img/facepaint.pngblob",
+	"mask 002": "./img/facepaint.pngblob", 
 };
-
-const skinColorMap = THREE.TextureLoader().load("/demos/faceAssets/white.jpg");
-const skinNormalMap = THREE.TextureLoader().load("/demos/faceAssets/normalmap.jpg");
 
 const params = {
 	masks: masks[ "mask 001" ],
@@ -26,7 +23,6 @@ const params = {
 
 function setupMaskTexture() {
 	const texture = new THREE.TextureLoader().load( params.masks );
-	texture.colorSpace = THREE.SRGBColorSpace;
 	maskObject.children[0].material.map = texture;
 }
 
@@ -88,25 +84,11 @@ async function loadMaskObject(path) {
 //const path = "./canonical_face_model.obj";
 const path = "./canonical_face_model.fbx";
 const maskObject = await loadMaskObject( path ).then((res) => res);
-const wrinkleObject = await loadMaskObject( path ).then((res) => res);
-
-const skinMaterial = new THREE.MeshStandardMaterial();
-
 maskObject.children[0].material.map = new THREE.TextureLoader().load( masks[ "mask 001" ] );
 maskObject.children[0].material.transparent = true;
 maskObject.children[0].material.blending = THREE.MultiplyBlending;
 maskObject.scale.set(width, height, 1);
 maskObject.rotation.x = Math.PI;
-
-wrinkleObject.children[0].material.map = skinColorMap;
-wrinkleObject.children[0].material.normalMap = skinNormalMap;
-wrinkleObject.children[0].material.roughness = 0.5;
-wrinkleObject.children[0].material.metalness = 0.2;
-wrinkleObject.children[0].material.transparent = true;
-wrinkleObject.children[0].material.blending = THREE.AdditiveBlending;
-wrinkleObject.scale.set(width, height, 1);
-wrinkleObject.rotation.x = Math.PI;
-
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
@@ -137,7 +119,6 @@ camera.position.set(0, 0, 2);
 const light = new THREE.AmbientLight(0xFFFFFF, 1.0);
 scene.add(light);
 scene.add(maskObject);
-scene.add(wrinkleObject);
 scene.background = imgTexture;
 //////////////////////////////////////////////////
 
