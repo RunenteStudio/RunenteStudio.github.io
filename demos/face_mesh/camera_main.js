@@ -13,7 +13,7 @@ import { GUI } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/lib
 // https://github.com/google/mediapipe/blob/master/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png
 // https://github.com/google/mediapipe/blob/master/mediapipe/graphs/face_effect/data/facepaint.pngblob
 const masks = { 
-	"mask 001": "/demos/faceAssets/spotsThree.png", 
+	"mask 001": "/demos/faceAssets/spotsThree.jpg", 
 	"mask 002": "./img/facepaint.pngblob", 
 };
 
