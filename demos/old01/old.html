@@ -2,6 +2,8 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
+		<title>Old filter 01</title>
+		
 		<meta name="viewport" content="width=device-width">
 		<style>
 			body {
@@ -12,7 +14,6 @@
 	</head>
 
 	<body>
-		<div id="root"></div>
 		
 		<script type="importmap">
 			{
@@ -24,7 +25,12 @@
 			}
 		</script>
 
-		<script type="module" src="camera_main.js"></script>
+		<div class="webcam">
+		    <video id="webcam" autoplay style="display: none;"></video>
+		    <canvas id="canvas" width="720px" height="1280px"></canvas>
+		</div>
+
+		<script type="module" src="old.js"></script>
 
 	</body>
 </html>

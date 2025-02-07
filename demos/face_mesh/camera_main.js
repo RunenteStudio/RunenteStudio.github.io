@@ -1,11 +1,12 @@
 import "https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js";
 import "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js";
-import { VERTECS } from "./vertecs.js";
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.126.1/build/three.module.js";
-import Stats from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/libs/stats.module.js";
-import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/loaders/OBJLoader.js";
-import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/loaders/FBXLoader.js";
-import { GUI } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/libs/dat.gui.module.js";
+
+import { VERTECS } from "vertecs";
+import * as THREE 		from "three";
+import Stats 			from "three/addons/libs/stats.module.js";
+import { FBXLoader } 	from "three/addons/loaders/FBXLoader.js";
+import { GUI } 			from 'three/addons/libs/lil-gui.module.min.js';
+//import { GUI } 			from "three/addons/libs/dat.gui.module.js";
 
 //////////////////////////////////////////////////
 // Create GUI
@@ -14,8 +15,11 @@ import { GUI } from "https://cdn.jsdelivr.net/npm/three@0.126.1/examples/jsm/lib
 // https://github.com/google/mediapipe/blob/master/mediapipe/graphs/face_effect/data/facepaint.pngblob
 const masks = { 
 	"mask 001": "/demos/faceAssets/threeFace.jpg", 
-	"mask 002": "./img/facepaint.pngblob", 
+	"mask 002": "./img/canonical_face_model_uv_visualization.png", 
 };
+
+const skinNormalMap = new THREE.TextureLoader().load("/demos/faceAssets/normalmap.jpg");
+skinNormalMap.colorSpace = THREE.LinearSRGBColorSpace;
 
 const params = {
 	masks: masks[ "mask 001" ],
@@ -23,11 +27,12 @@ const params = {
 
 function setupMaskTexture() {
 	const texture = new THREE.TextureLoader().load( params.masks );
+	texture.colorSpace = THREE.SRGBColorSpace;
 	maskObject.children[0].material.map = texture;
 }
 
 const gui = new GUI();
-const assets = gui.addFolder( "Assets" );
+const assets = gui.addFolder( "1632" );
 assets.add( params, "masks", masks ).onChange( setupMaskTexture );
 assets.open();
 //////////////////////////////////////////////////
@@ -73,7 +78,6 @@ if (isSP) {
 // Create Mask
 async function loadMaskObject(path) {
 	return new Promise((resolve, reject) => {
-		//const loader = new OBJLoader();
 		const loader = new FBXLoader();
 		loader.load( path, ( object ) => {
 			resolve( object );	
@@ -81,23 +85,47 @@ async function loadMaskObject(path) {
 	});
 }
 
-//const path = "./canonical_face_model.obj";
+const shadeMat = new THREE.MeshBasicMaterial({
+	color: 0xffffff,
+	map: new THREE.TextureLoader().load( masks[ "mask 001" ] ),
+	blending: THREE.MultiplyBlending
+});
+shadeMat.map.colorSpace = THREE.SRGBColorSpace;
+
+
+const normalMat = new THREE.MeshStandardMaterial({
+	color: 0xffffff,
+	map: new THREE.TextureLoader().load( masks[ "mask 001" ] ),
+	//normalMap: skinNormalMap,
+	roughness: 0.2,
+	metalness: 0.5
+});
+normalMat.map.colorSpace = THREE.SRGBColorSpace;
+
+
 const path = "./canonical_face_model.fbx";
 const maskObject = await loadMaskObject( path ).then((res) => res);
-maskObject.children[0].material.map = new THREE.TextureLoader().load( masks[ "mask 001" ] )
-maskObject.children[0].material.map.colorSpace = THREE.SRGBColorSpace;
-maskObject.children[0].material.transparent = true;
-maskObject.children[0].material.blending = THREE.MultiplyBlending;
+const wrinkleObject = await loadMaskObject( path ).then((res) => res);
+
+maskObject.children[0].material = shadeMat;
 maskObject.scale.set(width, height, 1);
 maskObject.rotation.x = Math.PI;
+
+wrinkleObject.children[0].material = normalMat;
+wrinkleObject.scale.set(width, height, 1);
+wrinkleObject.rotation.x = Math.PI;
+
+
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
 // Create WebGLRenderer
 function createRender() {
 	const renderer = new THREE.WebGLRenderer();
+	THREE.ColorManagement.enabled = true;
 	renderer.setSize(width, height);
 	renderer.setClearColor(0x000000, 0);
+	renderer.outputColorSpace = THREE.SRGBColorSpace;
 	renderer.autoClear = false;
 	document.body.appendChild(renderer.domElement);
 	return renderer
@@ -112,14 +140,23 @@ imgCanvasElement.style.visibility ="hidden";
 
 const imgCanvasCtx = imgCanvasElement.getContext("bitmaprenderer");
 const imgTexture = new THREE.CanvasTexture( imgCanvasElement )
+imgTexture.colorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 1, 1000 );
 camera.position.set(0, 0, 2);
 
-const light = new THREE.AmbientLight(0xFFFFFF, 1.0);
+const light = new THREE.AmbientLight(0xFFFFFF, 0.1);
+const dirLight = new THREE.DirectionalLight( 0xFFFFFF, 1.0 );
+const hLight = new THREE.HemisphereLight( 0xffffff, 0xf7f4d5, 0.9 );
+dirLight.position.set(0.3, -0.5, 0.5);
+
 scene.add(light);
-scene.add(maskObject);
+scene.add(dirLight);
+scene.add(hLight);
+
+//scene.add(maskObject);
+scene.add(wrinkleObject);
 scene.background = imgTexture;
 //////////////////////////////////////////////////
 
@@ -134,10 +171,10 @@ function createFaceMesh() {
 	faceMesh.setOptions({
 		static_image_mode: false,
 		selfieMode: true,
-		enableFaceGeometry: false,
+		enableFaceGeometry: true,
 		maxNumFaces: 1,
 		//refineLandmarks: false,
-		refineLandmarks: true,
+		refineLandmarks: false,
 		minDetectionConfidence: 0.7,
 		minTrackingConfidence: 0.7
 	});
@@ -160,8 +197,9 @@ async function onResults(results) {
 				vertices.push(newVec.x - 0.5, newVec.y - 0.5, newVec.z);
 			}
 			const verticesArray = new Float32Array(vertices)
-			maskObject.children[0].geometry.attributes.position.copyArray(verticesArray);
-			maskObject.children[0].geometry.attributes.position.needsUpdate = true;
+			wrinkleObject.children[0].geometry.attributes.position.copyArray(verticesArray);
+			wrinkleObject.children[0].geometry.attributes.position.needsUpdate = true;
+			//console.log(verticesArray[0] + ' ' + verticesArray[1] + ' ' + verticesArray[2]);
 		}
 
 	} catch(e) {
