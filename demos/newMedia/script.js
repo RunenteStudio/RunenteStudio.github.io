@@ -1,196 +1,206 @@
-// Copyright 2023 The MediaPipe Authors.
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//      http://www.apache.org/licenses/LICENSE-2.0
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
-const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
-const demosSection = document.getElementById("demos");
-const imageBlendShapes = document.getElementById("image-blend-shapes");
-const videoBlendShapes = document.getElementById("video-blend-shapes");
-let faceLandmarker;
-let runningMode = "IMAGE";
-let enableWebcamButton;
-let webcamRunning = false;
-const videoWidth = 480;
-// Before we can use HandLandmarker class we must wait for it to finish
-// loading. Machine Learning models can be large and take a moment to
-// get everything needed to run.
-async function createFaceLandmarker() {
-    const filesetResolver = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
-    faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-        baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-            delegate: "GPU"
-        },
-        outputFaceBlendshapes: true,
-        runningMode,
-        numFaces: 1
-    });
-    demosSection.classList.remove("invisible");
+// Import Three.js and MediaPipe Tasks for vision.
+import * as THREE from "three";
+import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+
+// Global variables for Three.js.
+let scene, camera, renderer;
+
+// Global variables for the MediaPipe face landmark detector.
+let faceLandmarker = null;
+let video = null; // Will hold the webcam video element.
+let latestLandmarks = null; // Latest array of landmarks for a face.
+let latestBlendshapes = null; // Latest blendshape result.
+let landmarkCubes = []; // Array to hold the cube meshes.
+let referencePlane = null; // Reference to the plane for color updates.
+
+// Initialize Three.js, MediaPipe, and start the animation.
+init();
+animate();
+
+async function init() {
+  initThree();
+  await initFaceLandmarker();
 }
-createFaceLandmarker();
-/********************************************************************
-// Demo 1: Grab a bunch of images from the page and detection them
-// upon click.
-********************************************************************/
-// In this demo, we have put all our clickable images in divs with the
-// CSS class 'detectionOnClick'. Lets get all the elements that have
-// this class.
-const imageContainers = document.getElementsByClassName("detectOnClick");
-// Now let's go through all of these and add a click event listener.
-for (let imageContainer of imageContainers) {
-    // Add event listener to the child element whichis the img element.
-    imageContainer.children[0].addEventListener("click", handleClick);
+
+// --- Three.js Setup ---
+function initThree() {
+  scene = new THREE.Scene();
+
+  // Set the scene background to gray.
+  scene.background = new THREE.Color(0x808080);
+
+  // Set up a perspective camera.
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  // Start the camera at an initial position.
+  camera.position.set(0, 0, 2);
+
+  // Create the WebGL renderer.
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
+
+  // Add a directional light from above (and slightly in front).
+  const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight1.position.set(1, 3, -2);
+  scene.add(directionalLight1);
+
+  // Add a second directional light with less intensity from below and behind the face.
+  const directionalLight2 = new THREE.DirectionalLight(0x0000ff, 0.3);
+  directionalLight2.position.set(-1, -1, 1);
+  scene.add(directionalLight2);
+
+  const ambientLight = new THREE.AmbientLight( 0x6b6b6b );
+  scene.add( ambientLight );
+
+  // Add a reference plane below the face.
+  const planeGeometry = new THREE.PlaneGeometry(5, 5);
+  const planeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x555555,
+    side: THREE.DoubleSide
+  });
+  const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+  // Rotate the plane to be horizontal.
+  plane.rotation.x = -Math.PI / 2;
+  // Position the plane below the face landmarks.
+  plane.position.y = -1;
+  scene.add(plane);
+  // Store a reference so we can update its material color.
+  referencePlane = plane;
+
+  window.addEventListener("resize", onWindowResize, false);
 }
-// When an image is clicked, let's detect it and display results!
-async function handleClick(event) {
-    if (!faceLandmarker) {
-        console.log("Wait for faceLandmarker to load before clicking!");
-        return;
-    }
-    if (runningMode === "VIDEO") {
-        runningMode = "IMAGE";
-        await faceLandmarker.setOptions({ runningMode });
-    }
-    // Remove all landmarks drawed before
-    const allCanvas = event.target.parentNode.getElementsByClassName("canvas");
-    for (var i = allCanvas.length - 1; i >= 0; i--) {
-        const n = allCanvas[i];
-        n.parentNode.removeChild(n);
-    }
-    // We can call faceLandmarker.detect as many times as we like with
-    // different image data each time. This returns a promise
-    // which we wait to complete and then call a function to
-    // print out the results of the prediction.
-    const faceLandmarkerResult = faceLandmarker.detect(event.target);
-    const canvas = document.createElement("canvas");
-    canvas.setAttribute("class", "canvas");
-    canvas.setAttribute("width", event.target.naturalWidth + "px");
-    canvas.setAttribute("height", event.target.naturalHeight + "px");
-    canvas.style.left = "0px";
-    canvas.style.top = "0px";
-    canvas.style.width = `${event.target.width}px`;
-    canvas.style.height = `${event.target.height}px`;
-    event.target.parentNode.appendChild(canvas);
-    const ctx = canvas.getContext("2d");
-    const drawingUtils = new DrawingUtils(ctx);
-    for (const landmarks of faceLandmarkerResult.faceLandmarks) {
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE, { color: "#FF3030" });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW, { color: "#FF3030" });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, { color: "#30FF30" });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW, { color: "#30FF30" });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, { color: "#E0E0E0" });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LIPS, {
-            color: "#E0E0E0"
-        });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS, { color: "#FF3030" });
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS, { color: "#30FF30" });
-    }
-    drawBlendShapes(imageBlendShapes, faceLandmarkerResult.faceBlendshapes);
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
-/********************************************************************
-// Demo 2: Continuously grab image from webcam stream and detect it.
-********************************************************************/
-const video = document.getElementById("webcam");
-const canvasElement = document.getElementById("output_canvas");
-const canvasCtx = canvasElement.getContext("2d");
-// Check if webcam access is supported.
-function hasGetUserMedia() {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+// --- MediaPipe Setup ---
+async function initFaceLandmarker() {
+  // Create a hidden video element to capture the webcam.
+  video = document.createElement("video");
+  video.autoplay = true;
+  video.playsInline = true;
+  video.muted = true;
+  video.style.display = "none";
+  document.body.appendChild(video);
+
+  try {
+    // Request access to the webcam.
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    await video.play();
+  } catch (err) {
+    console.error("Error accessing webcam:", err);
+    return;
+  }
+
+  // Load the WASM files required by MediaPipe.
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.1.0-alpha-16/wasm"
+  );
+
+  // Create the Face Landmarker.
+  faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: "face_landmarker.task"
+    },
+    numFaces: 1,         // Process one face at a time.
+    runningMode: "VIDEO", // Use the video mode.
+    outputFaceBlendshapes: true
+  });
+
+  // Begin processing video frames.
+  processVideoFrame();
 }
-// If webcam supported, add event listener to button for when user
-// wants to activate it.
-if (hasGetUserMedia()) {
-    enableWebcamButton = document.getElementById("webcamButton");
-    enableWebcamButton.addEventListener("click", enableCam);
+
+async function processVideoFrame() {
+  if (!faceLandmarker) return;
+
+  const now = performance.now();
+  const results = await faceLandmarker.detectForVideo(video, now);
+
+  // If a face is detected, update the latest landmarks and blendshapes.
+  if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+    latestLandmarks = results.faceLandmarks[0];
+    // Check if blendshapes are provided.
+    if (results.faceBlendshapes && results.faceBlendshapes.length > 0) {
+      latestBlendshapes = results.faceBlendshapes[0];
+    }
+    // On the first detection, create cubes for each landmark.
+    if (landmarkCubes.length === 0) {
+      createLandmarkCubes(latestLandmarks.length);
+    }
+  }
+
+  requestAnimationFrame(processVideoFrame);
 }
-else {
-    console.warn("getUserMedia() is not supported by your browser");
+
+// Create a cube for each landmark using a Standard material with random initial rotations.
+function createLandmarkCubes(numLandmarks) {
+  const cubeGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.02);
+  const cubeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.5,
+    roughness: 0.5
+  });
+
+  for (let i = 0; i < numLandmarks; i++) {
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    // Set an initial random rotation in the x, y, and z axes.
+    cube.rotation.x = Math.random() * Math.PI * 2;
+    cube.rotation.y = Math.random() * Math.PI * 2;
+    cube.rotation.z = Math.random() * Math.PI * 2;
+    scene.add(cube);
+    landmarkCubes.push(cube);
+  }
 }
-// Enable the live webcam view and start detection.
-function enableCam(event) {
-    if (!faceLandmarker) {
-        console.log("Wait! faceLandmarker not loaded yet.");
-        return;
+
+// --- Render Loop ---
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Turntable camera animation: rotate camera around the origin.
+  const radius = 2.5;
+  const speed = 0.0005;
+  const angle = performance.now() * speed;
+  camera.position.x = radius * Math.sin(angle);
+  camera.position.z = radius * Math.cos(angle);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  // Update landmark cube positions if landmarks are available.
+  if (latestLandmarks && landmarkCubes.length === latestLandmarks.length) {
+    for (let i = 0; i < latestLandmarks.length; i++) {
+      const lm = latestLandmarks[i];
+      // Convert normalized MediaPipe coordinates to Three.js space.
+      landmarkCubes[i].position.x = (lm.x - 0.5) * 2;
+      landmarkCubes[i].position.y = -(lm.y - 0.5) * 2;
+      landmarkCubes[i].position.z = lm.z * 2; // Adjust scaling as needed.
     }
-    if (webcamRunning === true) {
-        webcamRunning = false;
-        enableWebcamButton.innerText = "ENABLE PREDICTIONS";
+  }
+
+  // Use the jawOpen blendshape to control the plane's base color.
+  // Expecting latestBlendshapes.categories to be an array of blendshape categories.
+  if (latestBlendshapes && referencePlane) {
+    const categories = latestBlendshapes.categories;
+    // Find the jawOpen blendshape category.
+    const jawOpenCategory = categories.find(category => category.categoryName === "jawOpen");
+    if (jawOpenCategory) {
+      const score = jawOpenCategory.score; // Expected to be between 0 and 1.
+      // Interpolate between the closed color (gray) and open color (red).
+      const closedColor = new THREE.Color(0x555555);
+      const openColor = new THREE.Color(0xff0000);
+      const blendedColor = closedColor.clone().lerp(openColor, score);
+      referencePlane.material.color.copy(blendedColor);
     }
-    else {
-        webcamRunning = true;
-        enableWebcamButton.innerText = "DISABLE PREDICTIONS";
-    }
-    // getUsermedia parameters.
-    const constraints = {
-        video: true
-    };
-    // Activate the webcam stream.
-    navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
-        video.srcObject = stream;
-        video.addEventListener("loadeddata", predictWebcam);
-    });
-}
-let lastVideoTime = -1;
-let results = undefined;
-const drawingUtils = new DrawingUtils(canvasCtx);
-async function predictWebcam() {
-    const radio = video.videoHeight / video.videoWidth;
-    video.style.width = videoWidth + "px";
-    video.style.height = videoWidth * radio + "px";
-    canvasElement.style.width = videoWidth + "px";
-    canvasElement.style.height = videoWidth * radio + "px";
-    canvasElement.width = video.videoWidth;
-    canvasElement.height = video.videoHeight;
-    // Now let's start detecting the stream.
-    if (runningMode === "IMAGE") {
-        runningMode = "VIDEO";
-        await faceLandmarker.setOptions({ runningMode: runningMode });
-    }
-    let startTimeMs = performance.now();
-    if (lastVideoTime !== video.currentTime) {
-        lastVideoTime = video.currentTime;
-        results = faceLandmarker.detectForVideo(video, startTimeMs);
-    }
-    if (results.faceLandmarks) {
-        for (const landmarks of results.faceLandmarks) {
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE, { color: "#FF3030" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW, { color: "#FF3030" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, { color: "#30FF30" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW, { color: "#30FF30" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, { color: "#E0E0E0" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LIPS, { color: "#E0E0E0" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS, { color: "#FF3030" });
-            drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS, { color: "#30FF30" });
-        }
-    }
-    drawBlendShapes(videoBlendShapes, results.faceBlendshapes);
-    // Call this function again to keep predicting when the browser is ready.
-    if (webcamRunning === true) {
-        window.requestAnimationFrame(predictWebcam);
-    }
-}
-function drawBlendShapes(el, blendShapes) {
-    if (!blendShapes.length) {
-        return;
-    }
-    console.log(blendShapes[0]);
-    let htmlMaker = "";
-    blendShapes[0].categories.map((shape) => {
-        htmlMaker += `
-      <li class="blend-shapes-item">
-        <span class="blend-shapes-label">${shape.displayName || shape.categoryName}</span>
-        <span class="blend-shapes-value" style="width: calc(${+shape.score * 100}% - 120px)">${(+shape.score).toFixed(4)}</span>
-      </li>
-    `;
-    });
-    el.innerHTML = htmlMaker;
+  }
+
+  renderer.render(scene, camera);
 }
