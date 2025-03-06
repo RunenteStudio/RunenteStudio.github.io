@@ -10,12 +10,13 @@ let model, skeleton, mixer, clock;
 
 const crossFadeControls = [];
 
-let currentBaseAction = 'idle';
+let currentBaseAction = 'standby';
 const allActions = [];
 const baseActions = {
   standby: { weight: 1 },
-  sad: { weight: 0 },
-  feliz: { weight: 0 }
+  triste: { weight: 0 },
+  feliz: { weight: 0 },
+  baile: { weight: 0 }
 };
 const additiveActions = {
   sneak_pose: { weight: 0 },
@@ -33,16 +34,16 @@ function init() {
   clock = new THREE.Clock();
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color( 0xa1a1a1 );
-  scene.fog = new THREE.Fog( 0xa1a1a1, 10, 50 );
+  scene.background = new THREE.Color( 0xcccccc );
+  scene.fog = new THREE.Fog( 0xcccccc, 10, 50 );
 
   const hemiLight = new THREE.HemisphereLight( 0xffffff, 0xa7ebfc, 3 );
   hemiLight.position.set( 0, 20, 0 );
   scene.add( hemiLight );
 
 
-  const dirLight = new THREE.DirectionalLight( 0xffffff, 2 );
-  dirLight.position.set( 3, 10, 10 );
+  const dirLight = new THREE.DirectionalLight( 0xffffff, 3 );
+  dirLight.position.set( 3, 6, 4 );
   dirLight.castShadow = true;
   dirLight.shadow.camera.top = 2;
   dirLight.shadow.camera.bottom = - 2;
@@ -51,6 +52,11 @@ function init() {
   dirLight.shadow.camera.near = 0.1;
   dirLight.shadow.camera.far = 40;
   scene.add( dirLight );
+
+  const dirLight2 = new THREE.DirectionalLight( 0xff99dd, 1 );
+  dirLight2.position.set( -2, 1, 0 );
+
+  scene.add( dirLight2 );
 
     // ground
 
@@ -127,7 +133,7 @@ function init() {
 
     // camera
   camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 100 );
-  camera.position.set( - 1, 2, 4 );
+  camera.position.set( - 1, 1, 4 );
 
   const controls = new OrbitControls( camera, renderer.domElement );
   controls.enablePan = false;
@@ -217,18 +223,12 @@ function modifyTimeScale( speed ) {
 
 function prepareCrossFade( startAction, endAction, duration ) {
 
-    // If the current action is 'idle', execute the crossfade immediately;
+    // If the current action is 'standby', execute the crossfade immediately;
     // else wait until the current action has finished its current loop
 
-  if ( currentBaseAction === 'idle' || ! startAction || ! endAction ) {
 
     executeCrossFade( startAction, endAction, duration );
 
-  } else {
-
-    synchronizeCrossFade( startAction, endAction, duration );
-
-  }
 
     // Update control colors
 
