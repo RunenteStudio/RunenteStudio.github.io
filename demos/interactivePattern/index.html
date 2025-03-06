@@ -22,10 +22,10 @@ console.log("Initializing scene...");
 const tileCountShortAxis = 12; 
 
 // Transition duration (the color animation length) in seconds.
-const transitionDuration = 1; 
+const transitionDuration = 1.5; 
 
 // Pattern line width as a fraction of the shape's bounding box.
-const patternLineWidth = 0.3;   
+const patternLineWidth = 0.5;   
 
 //
 // Color mode probabilities (when randomly assigning a tile's mode):
@@ -237,7 +237,8 @@ vec3 twoColorGradient(float factor, vec3 colA, vec3 colB) {
 ///////////////////////////////////////////////////////////////////////////
 float getDiscreteSize(float seed) {
   float f = fract(seed * 7.0);
-  if (f < 0.1) return 0.5;
+  if (f < 0.1) return 0.25;
+  else if (f < 0.2) return 0.5;
   else if (f < 0.8) return 1.0;
   else return 2.0;
 }
@@ -442,33 +443,81 @@ console.log("Mesh added to scene.");
 // On user click/tap, compute the tile coordinates, then assign a new random state
 // (with a random shape index [0–9], a color mode from getRandomMode(), and a random seed),
 // and record the current time as the transition start.
+// Global array to store pending ripple timeout IDs.
+let rippleTimeouts = [];
+
 renderer.domElement.addEventListener('pointerdown', (event) => {
+  // Clear any pending ripple updates (interrupt current ripple).
+  rippleTimeouts.forEach(timerId => clearTimeout(timerId));
+  rippleTimeouts = [];
+
+  // Get the click position relative to the canvas.
   const rect = renderer.domElement.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
   const nx = x / rect.width;
   const ny = 1.0 - (y / rect.height);
-  const tx = Math.floor(nx * tileCountX);
-  const ty = Math.floor(ny * tileCountY);
-  
+
+  // Compute grid coordinates for the clicked tile.
+  const clickedTileX = Math.floor(nx * tileCountX);
+  const clickedTileY = Math.floor(ny * tileCountY);
+
   console.log("Pointer down at:", { clientX: event.clientX, clientY: event.clientY, normalized: { nx, ny } });
-  console.log("Computed tile coordinates:", { tx, ty });
-  
-  if (tx < 0 || tx >= tileCountX || ty < 0 || ty >= tileCountY) {
+  console.log("Clicked tile coordinates:", { clickedTileX, clickedTileY });
+
+  // Check if click is within grid bounds.
+  if (clickedTileX < 0 || clickedTileX >= tileCountX || clickedTileY < 0 || clickedTileY >= tileCountY) {
     console.log("Click out of bounds, ignoring.");
     return;
   }
-  
-  const tileIndex = ty * tileCountX + tx;
-  const shapeIndex = randomInt(10); // Random shape index from 0–9.
-  const colorMode = getRandomMode();
-  const randomSeed = Math.random();
-  const startTime = clock.getElapsedTime();
-  
-  setTileData(newStateData, tileIndex, shapeIndex, colorMode, randomSeed, startTime);
-  newStateTex.needsUpdate = true;
-  console.log("Updated tile", tileIndex, "with new state:", { shapeIndex, colorMode, randomSeed, startTime });
+
+  // Define a delay factor (in seconds per tile unit). Adjust as needed.
+  const rippleDelayFactor = 0.15;
+  // Base time for the ripple.
+  const baseTime = clock.getElapsedTime();
+
+  // Iterate over every tile in the grid.
+  for (let ty = 0; ty < tileCountY; ty++) {
+    for (let tx = 0; tx < tileCountX; tx++) {
+      const tileIndex = ty * tileCountX + tx;
+
+      // Compute Euclidean distance from the clicked tile.
+      const dx = tx - clickedTileX;
+      const dy = ty - clickedTileY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Compute delay so even the clicked tile is delayed (distance 0 -> delay = rippleDelayFactor).
+      const delay = rippleDelayFactor * (distance);
+
+      // Schedule a delayed update for this tile.
+      const timeoutId = setTimeout(() => {
+        // Use the current time at update.
+        const currentTime = clock.getElapsedTime();
+        const i = tileIndex * 4;
+
+        // Copy the current new state into old state.
+        oldStateData[i + 0] = newStateData[i + 0]; // shape index
+        oldStateData[i + 1] = newStateData[i + 1]; // color mode
+        oldStateData[i + 2] = newStateData[i + 2]; // random seed
+        oldStateData[i + 3] = newStateData[i + 3]; // start time
+
+        // Generate a new random state for this tile.
+        const newShape = randomInt(10);
+        const newMode = getRandomMode();
+        const newSeed = Math.random();
+
+        // Update newStateData with the new random state and current time as the transition start.
+        setTileData(newStateData, tileIndex, newShape, newMode, newSeed, currentTime);
+        newStateTex.needsUpdate = true;
+      }, delay * 1000); // delay is in seconds, setTimeout expects milliseconds.
+
+      rippleTimeouts.push(timeoutId);
+    }
+  }
+
+  console.log("Ripple update initiated from tile:", { clickedTileX, clickedTileY, baseTime });
 });
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // FUNCTION: CHANGE ALL TILES
