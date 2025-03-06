@@ -22,7 +22,7 @@ console.log("Initializing scene...");
 const tileCountShortAxis = 12; 
 
 // Transition duration (the color animation length) in seconds.
-const transitionDuration = 0.5; 
+const transitionDuration = 1; 
 
 // Pattern line width as a fraction of the shape's bounding box.
 const patternLineWidth = 0.3;   
@@ -34,23 +34,24 @@ const patternLineWidth = 0.3;
 //   Mode 1: Black & pastel gradient – 30%
 //   Mode 2: Pastel-only – 50%
 //
-const modeProbNew = 0.2; // Mode 3: Only black.
+const modeProbNew = 0.05; // Mode 3: Only black.
 const modeProb0 = 0.1;   // Mode 0: Black & grey gradient.
-const modeProb1 = 0.4;   // Mode 1: Black & pastel.
-const modeProb2 = 0.3;   // Mode 2: Pastel-only.
+const modeProb1 = 0.45;   // Mode 1: Black & pastel.
+const modeProb2 = 0.4;   // Mode 2: Pastel-only.
 
 const MAX_GRID_SIZE = 64; // Maximum grid size for safety.
 
-// Pastel color palette (8 colors, with pastel5 updated to hex f5ed81).
+// Updated saturated color palette (8 colors, chosen for vibrancy and harmony):
+//   #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #FF6EC7, #FF9F1C, #9D4EDD, #00B8A9
 const pastelPalette = [
-  new THREE.Color(0xa1/255, 0x79/255, 0xec/255), // a179ec
-  new THREE.Color(0xfe/255, 0x74/255, 0x5d/255), // fe745d
-  new THREE.Color(0xfb/255, 0xf2/255, 0x62/255), // fbf262
-  new THREE.Color(0x95/255, 0xf3/255, 0x8a/255), // 95f38a
-  new THREE.Color(0x8e/255, 0xcd/255, 0xe8/255), // 8ecde8
-  new THREE.Color(0xf5/255, 0xed/255, 0x81/255), // f5ed81
-  new THREE.Color(0xf5/255, 0x80/255, 0x95/255), // f58095
-  new THREE.Color(0xf7/255, 0x9e/255, 0xf0/255)  // f79ef0
+  new THREE.Color(1.0, 0.42, 0.42),    // #FF6B6B
+  new THREE.Color(1.0, 0.851, 0.239),   // #FFD93D
+  new THREE.Color(0.42, 0.80, 0.47),     // #6BCB77
+  new THREE.Color(0.302, 0.588, 1.0),     // #4D96FF
+  new THREE.Color(1.0, 0.431, 0.78),      // #FF6EC7
+  new THREE.Color(1.0, 0.6235, 0.1098),   // #FF9F1C
+  new THREE.Color(0.6157, 0.3059, 0.8667), // #9D4EDD
+  new THREE.Color(0.0, 0.7216, 0.6627)     // #00B8A9
 ];
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -198,20 +199,21 @@ uniform sampler2D newStateTex;
 
 #define PI 3.1416
 
+// Small epsilon for smoothing the edges.
+const float eps = 0.01;
+
 ///////////////////////////////////////////////////////////////////////////
 // Pastel Palette and Gradient Functions
 ///////////////////////////////////////////////////////////////////////////
-// Fixed pastel palette with 8 colors.
-vec3 pastel0 = vec3(0.631, 0.475, 0.925); // a179ec
-vec3 pastel1 = vec3(0.996, 0.455, 0.365); // fe745d
-vec3 pastel2 = vec3(0.984, 0.949, 0.384); // fbf262
-vec3 pastel3 = vec3(0.584, 0.953, 0.541); // 95f38a
-vec3 pastel4 = vec3(0.557, 0.804, 0.910); // 8ecde8
-vec3 pastel5 = vec3(0.960, 0.929, 0.505); // f5ed81
-vec3 pastel6 = vec3(0.961, 0.502, 0.584); // f58095
-vec3 pastel7 = vec3(0.969, 0.620, 0.941); // f79ef0
+vec3 pastel0 = vec3(1.0, 0.42, 0.42);    // #FF6B6B
+vec3 pastel1 = vec3(1.0, 0.851, 0.239);   // #FFD93D
+vec3 pastel2 = vec3(0.42, 0.80, 0.47);     // #6BCB77
+vec3 pastel3 = vec3(0.302, 0.588, 1.0);     // #4D96FF
+vec3 pastel4 = vec3(1.0, 0.431, 0.78);      // #FF6EC7
+vec3 pastel5 = vec3(1.0, 0.6235, 0.1098);   // #FF9F1C
+vec3 pastel6 = vec3(0.6157, 0.3059, 0.8667); // #9D4EDD
+vec3 pastel7 = vec3(0.0, 0.7216, 0.6627);    // #00B8A9
 
-// Select three pastel colors based on the seed.
 void pickPastels(float seed, out vec3 colA, out vec3 colB, out vec3 colC) {
   int idxA = int(floor(fract(seed * 12.34) * 8.0));
   int idxB = int(floor(fract(seed * 56.78) * 8.0));
@@ -226,7 +228,6 @@ void pickPastels(float seed, out vec3 colA, out vec3 colB, out vec3 colC) {
   colC = palette[idxC];
 }
 
-// Returns a two-color gradient by interpolating between two colors.
 vec3 twoColorGradient(float factor, vec3 colA, vec3 colB) {
   return mix(colA, colB, factor);
 }
@@ -234,103 +235,102 @@ vec3 twoColorGradient(float factor, vec3 colA, vec3 colB) {
 ///////////////////////////////////////////////////////////////////////////
 // Discrete Position and Size Functions
 ///////////////////////////////////////////////////////////////////////////
-// Returns a discrete size factor: 1.0 means the shape's bounding box fills one tile,
-// 2.0 means the bounding box is twice as large as one tile.
 float getDiscreteSize(float seed) {
-  return (fract(seed * 7.0) < 0.5) ? 1.0 : 0.5;
+  float f = fract(seed * 7.0);
+  if (f < 0.1) return 0.5;
+  else if (f < 0.8) return 1.0;
+  else return 2.0;
 }
 
-// Returns one of 9 discrete positions (center, corners, edges) for the shape's center.
-// The positions use 0.0 and 1.0 so that shapes can be forced to the borders.
 vec2 getDiscretePosition(float seed) {
   int posIndex = int(floor(fract(seed * 11.11) * 9.0));
   vec2 positions[9];
-  positions[0] = vec2(0.5, 0.5);    // Center
-  positions[1] = vec2(0.0, 0.0);      // Bottom-left
-  positions[2] = vec2(1.0, 0.0);      // Bottom-right
-  positions[3] = vec2(0.0, 1.0);      // Top-left
-  positions[4] = vec2(1.0, 1.0);      // Top-right
-  positions[5] = vec2(0.5, 0.0);      // Bottom-center
-  positions[6] = vec2(0.5, 1.0);      // Top-center
-  positions[7] = vec2(0.0, 0.5);      // Left-center
-  positions[8] = vec2(1.0, 0.5);      // Right-center
+  positions[0] = vec2(0.5, 0.5);
+  positions[1] = vec2(0.0, 0.0);
+  positions[2] = vec2(1.0, 0.0);
+  positions[3] = vec2(0.0, 1.0);
+  positions[4] = vec2(1.0, 1.0);
+  positions[5] = vec2(0.5, 0.0);
+  positions[6] = vec2(0.5, 1.0);
+  positions[7] = vec2(0.0, 0.5);
+  positions[8] = vec2(1.0, 0.5);
   return positions[posIndex];
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // SHAPE Coverage Function
 ///////////////////////////////////////////////////////////////////////////
-// Computes the coverage (0.0 to 1.0) for the selected shape,
-// drawn within a bounding box whose size equals the discrete size factor.
-// (A size factor of 1.0 means one tile; 2.0 means twice as large.)
 float shapeCoverage(int shapeIndex, vec2 localUV, float seed) {
   float sizeFactor = getDiscreteSize(seed);
-  float boxSize = sizeFactor;      // Bounding box size in normalized tile coordinates.
-  float radius = 1.0 * boxSize;      // Radius used for circle and ring shapes.
+  float boxSize = sizeFactor;
+  float radius = 1.0 * boxSize;
   vec2 shapeCenter = getDiscretePosition(seed);
   
-  // Compute the origin and relative coordinates within the bounding box.
   vec2 boxOrigin = shapeCenter - 0.5 * boxSize;
   vec2 relCoord = (localUV - boxOrigin) / boxSize;
   float d = distance(localUV, shapeCenter);
   float coverage = 0.0;
   
   if (shapeIndex == 0) {
-    // Full circle covering the entire bounding box.
-    coverage = step(d, radius);
+    // Full circle.
+    coverage = 1.0 - smoothstep(radius - eps, radius, d);
   }
   else if (shapeIndex == 1) {
-    // Half circle: only the top half of the bounding box is filled.
-    coverage = step(d, radius) * step(0.5, relCoord.y);
+    // Half circle: only the top half is filled.
+    coverage = (1.0 - smoothstep(radius - eps, radius, d)) *
+               smoothstep(0.5 - eps, 0.5 + eps, relCoord.y);
   }
   else if (shapeIndex == 2) {
-    // Diamond (rotated square): pixels where |x-0.5|+|y-0.5| ≤ 0.5.
+    // Diamond shape.
     float diamond = abs(relCoord.x - 0.5) + abs(relCoord.y - 0.5);
-    coverage = step(diamond, 0.5);
+    coverage = 1.0 - smoothstep(0.5 - eps, 0.5 + eps, diamond);
   }
   else if (shapeIndex == 3) {
-    // Ring: a circular band with the inner area left as background.
+    // Ring.
     float outer = radius;
     float inner = outer - patternLineWidth;
-    float ring = abs(step(outer, d) - step(inner, d));
-    if (d < inner) { ring = 0.0; }
-    coverage = ring;
+    float innerSmooth = smoothstep(inner - eps, inner + eps, d);
+    float outerSmooth = smoothstep(outer - eps, outer + eps, d);
+    coverage = innerSmooth - outerSmooth;
   }
   else if (shapeIndex == 4) {
-    // Square: fills the central half of the bounding box.
+    // Square.
     vec2 diff = abs(localUV - shapeCenter);
-    coverage = step(diff.x, 0.5 * boxSize) * step(diff.y, 0.5 * boxSize);
+    coverage = (1.0 - smoothstep(0.5 * boxSize - eps, 0.5 * boxSize, diff.x)) *
+               (1.0 - smoothstep(0.5 * boxSize - eps, 0.5 * boxSize, diff.y));
   }
   else if (shapeIndex == 5) {
-    // Checker pattern within the bounding box.
+    // Checker pattern.
     vec2 coord = (localUV - boxOrigin) / boxSize;
     vec2 cpos = floor(coord * 1.0);
     coverage = mod(cpos.x + cpos.y, 2.0);
   }
   else if (shapeIndex == 6) {
-    // Arc: a ring segment on the left half of the bounding box.
+    // Arc: ring segment on the left half.
     float outer = radius;
     float inner = outer - patternLineWidth;
-    float ring = abs(step(outer, d) - step(inner, d));
-    coverage = ring * step(relCoord.x, 0.5);
+    float innerSmooth = smoothstep(inner - eps, inner + eps, d);
+    float outerSmooth = smoothstep(outer - eps, outer + eps, d);
+    float ring = innerSmooth - outerSmooth;
+    coverage = ring * (1.0 - smoothstep(0.5 - eps, 0.5 + eps, relCoord.x));
   }
   else if (shapeIndex == 7) {
-    // Diagonal line across the bounding box.
+    // Diagonal line.
     float line = abs(relCoord.x - relCoord.y);
-    coverage = step(line, patternLineWidth);
+    coverage = 1.0 - smoothstep(patternLineWidth - eps, patternLineWidth, line);
   }
   else if (shapeIndex == 8) {
-    // Vertical line centered in the bounding box.
+    // Vertical line.
     float diff = abs(relCoord.x - 0.5);
-    coverage = step(diff, patternLineWidth * 1.0);
+    coverage = 1.0 - smoothstep(patternLineWidth - eps, patternLineWidth, diff);
   }
   else if (shapeIndex == 9) {
-    // Horizontal line centered in the bounding box.
+    // Horizontal line.
     float diff = abs(relCoord.y - 0.5);
-    coverage = step(diff, patternLineWidth * 1.0);
+    coverage = 1.0 - smoothstep(patternLineWidth - eps, patternLineWidth, diff);
   }
   else if (shapeIndex == 10) {
-    // New Shape: Checker pattern rotated by 45°.
+    // Checker pattern rotated by 45°.
     float angle = PI / 4.0;
     mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
     vec2 rotatedCoord = rot * (relCoord - vec2(0.5)) + vec2(0.5);
@@ -338,11 +338,12 @@ float shapeCoverage(int shapeIndex, vec2 localUV, float seed) {
     coverage = mod(cpos.x + cpos.y, 2.0);
   }
   else if (shapeIndex == 11) {
-    // New Shape: Half circle rotated by 45°.
+    // Half circle rotated by 45°.
     float angle = PI / 4.0;
     mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
     vec2 rotatedRel = rot * (relCoord - vec2(0.5)) + vec2(0.5);
-    coverage = step(distance(rotatedRel, vec2(0.5)), 0.5) * step(0.5, rotatedRel.y);
+    coverage = (1.0 - smoothstep(0.5 - eps, 0.5, distance(rotatedRel, vec2(0.5)))) *
+               smoothstep(0.5 - eps, 0.5 + eps, rotatedRel.y);
   }
   else {
     coverage = 1.0;
@@ -353,22 +354,12 @@ float shapeCoverage(int shapeIndex, vec2 localUV, float seed) {
 ///////////////////////////////////////////////////////////////////////////
 // TILE COLOR FUNCTION
 ///////////////////////////////////////////////////////////////////////////
-// Computes the final color for a tile based on its shape coverage and color mode.
-// Color modes:
-//   0: Black & grey gradient (light grey shape on dark grey background),
-//   1: Black & pastel (two-color pastel gradient over dark grey),
-//   2: Pastel-only (pastel background with a two-color pastel gradient for the shape),
-//   3: Only black (entire tile in dark grey).
-// This version does not crossfade between states; instead, the new state is applied immediately.
-// A color animation is applied by offsetting the gradient factor using an animated value with ease-out.
 vec3 tileColor(float coverage, int colorMode, float seed, vec2 localUV, float animOffset) {
   vec3 shapeColor;
   vec3 bgColor;
   vec3 colA, colB, colC;
   pickPastels(seed, colA, colB, colC);
   
-  // Determine the base gradient factor.
-  // For radial gradients, the origin is chosen from one of the four corners.
   float gradientType = fract(sin(seed * 100.0) * 10000.0);
   float gradFactor;
   if (gradientType < 0.5) {
@@ -382,25 +373,20 @@ vec3 tileColor(float coverage, int colorMode, float seed, vec2 localUV, float an
   } else {
     gradFactor = localUV.x;
   }
-  // Apply the animated offset with ease-out to shift the gradient.
   gradFactor = fract(gradFactor + animOffset);
   
   if (colorMode == 0) {
-    // Black & grey gradient: light grey shape on dark grey background.
     shapeColor = vec3(0.95);
-    bgColor = vec3(0.1);
+    bgColor = vec3(0.05);
   } else if (colorMode == 1) {
-    // Black & pastel: two-color pastel gradient over dark grey.
     shapeColor = twoColorGradient(gradFactor, colA, colB);
-    bgColor = vec3(0.1);
+    bgColor = vec3(0.05);
   } else if (colorMode == 2) {
-    // Pastel-only: pastel background with two-color pastel gradient for the shape.
     bgColor = colC;
     shapeColor = twoColorGradient(gradFactor, colA, colB);
   } else if (colorMode == 3) {
-    // Only black: entire tile rendered in dark grey.
-    shapeColor = vec3(0.1);
-    bgColor = vec3(0.1);
+    shapeColor = vec3(0.05);
+    bgColor = vec3(0.05);
   }
   
   return mix(bgColor, shapeColor, coverage);
@@ -409,22 +395,13 @@ vec3 tileColor(float coverage, int colorMode, float seed, vec2 localUV, float an
 ///////////////////////////////////////////////////////////////////////////
 // MAIN FRAGMENT SHADER
 ///////////////////////////////////////////////////////////////////////////
-// This shader immediately applies the new tile state (new pattern)
-// and then animates the gradient color offset over the duration of transitionDuration.
-// The animation uses a quadratic ease-out function.
 void main() {
-  // Normalize fragment coordinates.
   vec2 uv = gl_FragCoord.xy / resolution;
-  
-  // Determine tile indices and the local coordinate within the tile.
   vec2 tileIndex2D = floor(uv * tileCount);
   vec2 localUV = fract(uv * tileCount);
-  
-  // Compute texture coordinate for sampling the tile state.
   vec2 texSize = vec2(textureSize(oldStateTex, 0));
   vec2 tileUV = (tileIndex2D + 0.5) / texSize;
   
-  // Retrieve the new state for this tile.
   vec4 newData = texture2D(newStateTex, tileUV);
   
   int newShape = int(floor(newData.r + 0.5));
@@ -432,18 +409,15 @@ void main() {
   float newSeed = newData.b;
   float startT  = newData.a;
   
-  // Compute elapsed time since the tile's state changed.
   float dt = iTime - startT;
   float animT = clamp(dt / transitionDuration, 0.0, 1.0);
-  // Apply quadratic ease-out to the animated offset.
   float ease = pow(1.0 - animT, 4.0);
   
-  // Use the new state immediately for the shape and pattern,
-  // then apply the animated gradient offset.
   vec3 colorNew = tileColor(shapeCoverage(newShape, localUV, newSeed), newMode, newSeed, localUV, ease);
   gl_FragColor = vec4(colorNew, 1.0);
 }
 `;
+
 
 const vertexShader = `
 void main() {
@@ -506,17 +480,28 @@ window.addEventListener('keydown', (event) => {
     console.log("R key pressed. Updating all tiles...");
     const currentTime = clock.getElapsedTime();
     const totalTiles = tileCountX * tileCountY;
-    for (let tileIndex = 0; tileIndex < totalTiles; tileIndex++) {
-      const newShape = randomInt(10);
-      const newMode = getRandomMode();
-      const newSeed = Math.random();
-      // Update the new state for this tile.
-      setTileData(newStateData, tileIndex, newShape, newMode, newSeed, currentTime);
+
+for (let y = 0; y < tileCountY; y++) {
+  for (let x = 0; x < tileCountX; x++) {
+    const tileIndex = y * tileCountX + x;
+    const shapeIndex = randomInt(10); // Random shape indices from 0 to 9.
+    let colorMode = getRandomMode();
+    if (x === 0 || x === tileCountX - 1 || y === 0 || y === tileCountY - 1) {
+      colorMode = 3;
     }
+    const randomSeed = Math.random();
+    setTileData(oldStateData, tileIndex, shapeIndex, colorMode, randomSeed, currentTime);
+    setTileData(newStateData, tileIndex, shapeIndex, colorMode, randomSeed, currentTime);
+  }
+}
+
     newStateTex.needsUpdate = true;
     console.log("All tiles updated.");
   }
 });
+
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // WINDOW RESIZE HANDLING
