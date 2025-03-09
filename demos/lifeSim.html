@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Runente - 3D Particle Sim</title>
+    <style>
+      body { margin: 0; overflow: hidden; background: #000; }
+      canvas { display: block; background: none; }
+    </style>
+    <!-- Importmap for modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/",
+        "lil-gui": "https://unpkg.com/lil-gui@0.18/dist/lil-gui.esm.js"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <!-- POSITION SHADER (unchanged) -->
+    <script id="positionShader" type="x-shader/x-fragment">
+      uniform float delta;
+      uniform vec3 bounds;
+      
+      void main() {
+        vec2 uv = gl_FragCoord.xy / resolution.xy;
+        vec4 posData = texture2D(texturePosition, uv);
+        vec3 pos = posData.xyz;
+        vec3 vel = texture2D(textureVelocity, uv).xyz;
+        
+        vec3 newPos = pos + vel * delta;
+        
+        // Wrap around boundaries (assumes bounds is half-size of simulation space)
+        if(newPos.x > bounds.x) newPos.x = -bounds.x;
+        if(newPos.x < -bounds.x) newPos.x = bounds.x;
+        if(newPos.y > bounds.y) newPos.y = -bounds.y;
+        if(newPos.y < -bounds.y) newPos.y = bounds.y;
+        if(newPos.z > bounds.z) newPos.z = -bounds.z;
+        if(newPos.z < -bounds.z) newPos.z = bounds.z;
+        
+        gl_FragColor = vec4(newPos, 1.0);
+      }
+    </script>
+
+    <!-- UPDATED VELOCITY SHADER -->
+    <script id="velocityShader" type="x-shader/x-fragment">
+      uniform float delta;
+      uniform float globalSpeedMultiplier;
+      uniform float globalCenterAttraction;
+      uniform float speeds[4];
+      uniform float ranges[4];
+      uniform float accelerations[4];
+      uniform float interactionMatrix[16];
+
+      void main() {
+        vec2 uv = gl_FragCoord.xy / resolution.xy;
+        vec3 pos = texture2D(texturePosition, uv).xyz;
+        vec3 vel = texture2D(textureVelocity, uv).xyz;
+        vec3 initialVel = vel;
+        vec4 addData = texture2D(textureAdditional, uv);
+        int selfType = int(addData.r + 0.5);
+        float range = ranges[selfType];
+        float accel = accelerations[selfType];
+        float maxSpeed = speeds[selfType];
+        float rangeSquared = range * range;
+
+        vec3 sumForce = vec3(0.0);
+        int neighborCount = 0;
+        float stepSize = 2.0; // Skip every other particle for better performance
+
+        // Optimized neighbor loop with early exit and reduced checks
+        for (float y = 0.0; y < resolution.y; y += stepSize) {
+          for (float x = 0.0; x < resolution.x; x += stepSize) {
+            if (neighborCount > 32) break; // Limit maximum neighbors checked
+
+            vec2 neighborUV = (vec2(x, y) + 0.5) / resolution.xy;
+            if (distance(neighborUV, uv) < 1.0 / resolution.x) continue;
+
+            vec3 neighborPos = texture2D(texturePosition, neighborUV).xyz;
+            vec3 toNeighbor = neighborPos - pos;
+            float distSquared = dot(toNeighbor, toNeighbor);
+
+            if (distSquared < rangeSquared && distSquared > 0.0225) { // 0.15 * 0.15
+              vec4 neighborData = texture2D(textureAdditional, neighborUV);
+              int neighborType = int(neighborData.r + 0.5);
+              float interaction = interactionMatrix[selfType * 4 + neighborType];
+              
+              // Optimized force calculation
+              float weight = 1.0 / distSquared;
+              sumForce += interaction * toNeighbor * weight;
+              neighborCount++;
+            }
+          }
+          if (neighborCount > 32) break; // Early exit from outer loop
+        }
+
+        // Normalize and scale force
+        if (neighborCount > 0) {
+          sumForce = normalize(sumForce);
+        }
+        
+        // Add forces
+        vel += sumForce * accel * delta;
+        vel += normalize(-pos + vec3(0.0, 4.0, 0.0)) * globalCenterAttraction * delta;
+        vel *= globalSpeedMultiplier;
+
+        // Optimized velocity clamping
+        float speedLimit = maxSpeed * globalSpeedMultiplier;
+        float currentSpeed = length(vel);
+        if (currentSpeed > speedLimit) {
+          vel *= speedLimit / currentSpeed;
+        }
+        
+        vel = mix(initialVel, vel, 0.1);
+        gl_FragColor = vec4(vel, 1.0);
+      }
+    </script>
+
+    <!-- ADDITIONAL DATA SHADER (unchanged) -->
+    <script id="additionalDataShader" type="x-shader/x-fragment">
+      uniform float delta;
+      void main() {
+        vec2 uv = gl_FragCoord.xy / resolution.xy;
+        vec4 data = texture2D(textureAdditional, uv);
+        // Minimal decay on the green channel (time since last major change)
+        data.g = max(data.g - 0.1 * delta, 0.0);
+        // Blue channel is left as a placeholder.
+        gl_FragColor = data;
+      }
+    </script>
+
+    <!-- CUBE VERTEX and FRAGMENT SHADERS -->
+    <script id="cubeVertexShader" type="x-shader/x-vertex">
+      precision highp float;
+      
+      // (Note: attributes and built-in uniforms are provided automatically by Three.js)
+      uniform sampler2D texturePosition;
+      uniform sampler2D textureVelocity;
+      uniform sampler2D textureAdditional;
+      uniform float particleResolution;
+      uniform float scaleMultiplier;
+      
+      uniform vec3 typeColors0;
+      uniform vec3 typeColors1;
+      uniform vec3 typeColors2;
+      uniform vec3 typeColors3;
+      uniform vec3 typeColors0_back;
+      uniform vec3 typeColors1_back;
+      uniform vec3 typeColors2_back;
+      uniform vec3 typeColors3_back;
+      
+      varying vec3 vColor;
+      varying float vGradient;
+      
+      void main() {
+        float particlesPerRow = particleResolution;
+        float index = float(gl_InstanceID);
+        float u = mod(index, particlesPerRow) / particlesPerRow;
+        float v = floor(index / particlesPerRow) / particlesPerRow;
+        vec2 uv = vec2(u, v);
+        
+        vec3 simPos = texture2D(texturePosition, uv).xyz;
+        vec3 simVel = texture2D(textureVelocity, uv).xyz;
+        vec4 addData = texture2D(textureAdditional, uv);
+        int typeId = int(addData.r + 0.5);
+        
+        vec3 frontColor;
+        vec3 backColor;
+        if(typeId == 0){
+          frontColor = typeColors0;
+          backColor = typeColors0_back;
+        } else if(typeId == 1){
+          frontColor = typeColors1;
+          backColor = typeColors1_back;
+        } else if(typeId == 2){
+          frontColor = typeColors2;
+          backColor = typeColors2_back;
+        } else if(typeId == 3){
+          frontColor = typeColors3;
+          backColor = typeColors3_back;
+        }
+        
+        // Calculate gradient based on local z position
+        vGradient = position.z / 0.02 + 0.5;  // Normalize to 0-1 range
+        vColor = mix(backColor, frontColor, vGradient);
+        
+        vec3 forward = normalize(simVel + vec3(0.0001));
+        vec3 up = vec3(0.0, 1.0, 0.0);
+        vec3 right = normalize(cross(up, forward));
+        up = normalize(cross(forward, right));
+        
+        mat4 rotMatrix = mat4(
+          vec4(right, 0.0),
+          vec4(up, 0.0),
+          vec4(forward, 0.0),
+          vec4(0.0, 0.0, 0.0, 1.0)
+        );
+        
+        float speed = length(simVel);
+        float forwardScale = min(1.0 + speed * scaleMultiplier, 2.0);
+        mat4 scaleMatrix = mat4(
+          vec4(1.0, 0.0, 0.0, 0.0),
+          vec4(0.0, 1.0, 0.0, 0.0),
+          vec4(0.0, 0.0, forwardScale, 0.0),
+          vec4(0.0, 0.0, 0.0, 1.0)
+        );
+        
+        mat4 transMatrix = mat4(
+          vec4(1.0, 0.0, 0.0, 0.0),
+          vec4(0.0, 1.0, 0.0, 0.0),
+          vec4(0.0, 0.0, 1.0, 0.0),
+          vec4(simPos, 1.0)
+        );
+        
+        mat4 instanceMatrix = transMatrix * rotMatrix * scaleMatrix;
+        vec4 transformed = instanceMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * viewMatrix * transformed;
+      }
+    </script>
+
+    <script id="cubeFragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      varying vec3 vColor;
+      varying float vGradient;
+      void main() {
+        gl_FragColor = vec4(vColor, 1.0);
+      }
+    </script>
+
+    <!-- Module Script -->
+    <script type="module">
+      import * as THREE from "three";
+      import { GPUComputationRenderer } from "three/addons/misc/GPUComputationRenderer.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { GUI } from "lil-gui";
+      import { ARButton } from 'three/addons/webxr/ARButton.js';
+      import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+      import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+      import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+
+      let scene, camera, renderer, controls;
+      let gpuCompute, posVariable, velVariable, addVariable;
+      const WIDTH = 128; // Texture resolution (adjust to change particle count)
+      const NUM_PARTICLES = WIDTH * WIDTH;
+      const BOUNDS = 10;
+      let lastTime = performance.now();
+      let guiMesh;
+      let controller1, controller2;
+      let randomizeButton, resetPositionButton;
+      let font;
+
+      // Load the font first
+      const fontLoader = new FontLoader();
+      fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(loadedFont) {
+        font = loadedFont;
+        createAndAddButtons();
+      });
+
+      // Behavior parameters for each type, plus global speed multiplier and a global attraction (not used now).
+      let behaviorParams = {
+        type0: { speed: 3, range: 1.5, acceleration: 0.8, decay: 0.0, color: "#f77991", color2: "#ffa166" },
+        type1: { speed: 14.0, range: 0.2, acceleration: 1.0, decay: 0.0, color: "#906cf5", color2: "#ff7dc6" },
+        type2: { speed: 7, range: 0.5, acceleration: 0.8, decay: 0.0, color: "#3bbc74", color2: "#d2d582" },
+        type3: { speed: 7, range: 0.5, acceleration: 0.8, decay: 0.0, color: "#69eff7", color2: "#baffd4" },
+        scaleMultiplier: 10,
+        globalSpeedMultiplier: 0.85,
+        globalCenterAttraction: 1.1
+      };
+
+      // Interaction Matrix: 4x4 = 16 elements. Initialize with random values between -1 and 1.
+      let interactionMatrix = [];
+      for(let i=0; i<16; i++){
+        interactionMatrix.push(THREE.MathUtils.randFloat(-100, 100));
+      }
+
+      // Create GUI controls.
+      const gui = new GUI();
+      const folderTypes = gui.addFolder('Behavior Types');
+      ['type0', 'type1', 'type2', 'type3'].forEach(type => {
+        const f = folderTypes.addFolder(type);
+        f.add(behaviorParams[type], 'speed', 0.5, 3.0, 0.1).name('Max Speed').listen();
+        f.add(behaviorParams[type], 'range', 20, 100, 1).name('Range').listen();
+        f.add(behaviorParams[type], 'acceleration', 0.1, 1.0, 0.05).name('Acceleration').listen();
+        f.add(behaviorParams[type], 'decay', 0.01, 0.1, 0.005).name('Decay').listen();
+        f.addColor(behaviorParams[type], 'color').name('Front Color').listen();
+        f.addColor(behaviorParams[type], 'color2').name('Back Color').listen();
+      });
+      gui.add(behaviorParams, 'scaleMultiplier', 0.01, 10.0, 0.005).name('Cube Scale Multiplier').listen();
+      gui.add(behaviorParams, 'globalSpeedMultiplier', 0.5, 5.0, 1.1).name('Global Speed Multiplier').listen();
+      gui.add(behaviorParams, 'globalCenterAttraction', 0.0, 100.0, 0.1).name('Global Center Attraction').listen();
+
+      // Create a separate GUI folder for the Interaction Matrix.
+      const interactionFolder = gui.addFolder('Interaction Matrix');
+      // For each matrix element, label as "typeX → typeY"
+      for(let row = 0; row < 4; row++){
+        for(let col = 0; col < 4; col++){
+          // Use a unique key for each element, e.g., "m_0_0", "m_0_1", etc.
+          let key = "m_" + row + "_" + col;
+          // Add the key to a temporary object so GUI can work with it.
+          // We use the interactionMatrix array as the source.
+          let obj = {};
+          obj[key] = interactionMatrix[row * 4 + col];
+          interactionFolder.add(obj, key, -100, 100, 1).name("type" + row + "→type" + col).listen()
+          .onChange((val) => { interactionMatrix[row * 4 + col] = val; });
+        }
+      }
+
+      gui.add({ randomize: randomizeParameters }, 'randomize').name('Randomize All');
+
+      // Initialize Three.js scene.
+      scene = new THREE.Scene();
+      scene.background = null;
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.001, 1000);
+      camera.position.set(0, 2.5, 1.20);
+      renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        alpha: true,
+        premultipliedAlpha: false,
+        powerPreference: "high-performance",
+        precision: "highp"
+      });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      renderer.setClearColor(0x000000, 0);
+      
+      // Enable WebGL optimizations
+      renderer.info.autoReset = false;  // Manually reset renderer info
+      renderer.autoClear = false;       // Manual clear for better control
+
+      document.body.appendChild(renderer.domElement);
+      document.body.appendChild(ARButton.createButton(renderer, {
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.body }
+      }));
+      
+      // Optimize OrbitControls
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = false;
+      controls.enableZoom = true;
+      controls.enablePan = false;
+      controls.rotateSpeed = 0.5;
+
+      // Add controllers
+      controller1 = renderer.xr.getController(0);
+      controller1.addEventListener('select', onSelectStart);
+      controller2 = renderer.xr.getController(1);
+      controller2.addEventListener('select', onSelectStart);
+      scene.add(controller1);
+      scene.add(controller2);
+
+      // Create a visual button for randomization in VR
+      function createRandomizeButton() {
+        const geometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+        const material = new THREE.MeshPhongMaterial({ 
+          color: 0x00ff00,
+          emissive: 0x002200
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(0.1, 0, 0.05); // Position relative to controller
+        
+        return mesh;
+      }
+
+      function createResetPositionButton() {
+        const geometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+        const material = new THREE.MeshPhongMaterial({ 
+          color: 0x0088ff,
+          emissive: 0x000022
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(-0.1, 0, 0.05); // Match z-position with randomize button
+        
+        return mesh;
+      }
+
+      function createAndAddButtons() {
+        randomizeButton = createRandomizeButton();
+        resetPositionButton = createResetPositionButton();
+        if (controller1) {
+          controller1.add(randomizeButton);
+          controller1.add(resetPositionButton);
+        }
+      }
+
+      // Controller button press handler
+      function onSelectStart(event) {
+        const controller = event.target;
+        const buttonPosition = new THREE.Vector3();
+        const controllerPosition = new THREE.Vector3();
+        controller.getWorldPosition(controllerPosition);
+
+        // Check randomize button
+        randomizeButton.getWorldPosition(buttonPosition);
+        if (controllerPosition.distanceTo(buttonPosition) < 0.05) {
+          // Visual feedback
+          randomizeButton.material.emissive.setHex(0x00ff00);
+          setTimeout(() => {
+            randomizeButton.material.emissive.setHex(0x002200);
+          }, 200);
+          
+          // Call randomization
+          randomizeParameters();
+          return;
+        }
+
+        // Check reset position button
+        resetPositionButton.getWorldPosition(buttonPosition);
+        if (controllerPosition.distanceTo(buttonPosition) < 0.05) {
+          // Visual feedback
+          resetPositionButton.material.emissive.setHex(0x0088ff);
+          setTimeout(() => {
+            resetPositionButton.material.emissive.setHex(0x000022);
+          }, 200);
+          
+          // Reset positions by creating and filling a new position texture
+          const dtPosition = gpuCompute.createTexture();
+          fillPositionTexture(dtPosition);
+          
+          // Get the current position variable's render target
+          const positionTarget = gpuCompute.getCurrentRenderTarget(posVariable);
+          
+          // Create a temporary render target for the new positions
+          const tempTarget = gpuCompute.createRenderTarget();
+          
+          // Copy the new position data to the temporary target
+          renderer.copyTextureToTexture(new THREE.Vector2(0, 0), dtPosition, tempTarget.texture);
+          
+          // Swap the position variable's target with our new one
+          gpuCompute.swapTextures(positionTarget, tempTarget);
+          
+          return;
+        }
+      }
+
+      // Remove controller model factory and grips
+      const light = new THREE.DirectionalLight(0xffffff, 1.0);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x404040));
+
+      // Create GUI mesh
+      function createGUIMesh() {
+        const guiWidth = 0.2;  // Smaller size for AR
+        const guiHeight = 0.15;
+        const guiGeometry = new THREE.PlaneGeometry(guiWidth, guiHeight);
+        const guiCanvas = document.createElement('canvas');
+        guiCanvas.width = 512;
+        guiCanvas.height = 768;
+        const guiContext = guiCanvas.getContext('2d');
+        guiContext.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        guiContext.fillRect(0, 0, guiCanvas.width, guiCanvas.height);
+
+        const guiTexture = new THREE.CanvasTexture(guiCanvas);
+        const guiMaterial = new THREE.MeshBasicMaterial({
+          map: guiTexture,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide,
+          blending: THREE.CustomBlending,
+          blendSrc: THREE.SrcAlphaFactor,
+          blendDst: THREE.OneMinusSrcAlphaFactor
+        });
+
+        const mesh = new THREE.Mesh(guiGeometry, guiMaterial);
+        mesh.position.set(0, 0, -0.5);  // Position in front of camera in AR
+        mesh.rotation.y = 0;
+        scene.add(mesh);
+
+        return { mesh, canvas: guiCanvas, context: guiContext, texture: guiTexture };
+      }
+
+      // Create GUI mesh and get references
+      const guiElements = createGUIMesh();
+      guiMesh = guiElements.mesh;
+
+      // Update GUI texture function
+      function updateGUITexture() {
+        const canvas = guiElements.canvas;
+        const context = guiElements.context;
+        
+        // Clear the canvas
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw parameter values
+        context.fillStyle = 'white';
+        context.font = '24px Arial';
+        let y = 40;
+        
+        // Draw type parameters
+        ['type0', 'type1', 'type2', 'type3'].forEach((type, index) => {
+          context.fillText(`${type}:`, 20, y);
+          y += 30;
+          context.fillText(`Speed: ${behaviorParams[type].speed.toFixed(2)}`, 40, y);
+          y += 30;
+          context.fillText(`Range: ${behaviorParams[type].range.toFixed(2)}`, 40, y);
+          y += 30;
+          context.fillText(`Accel: ${behaviorParams[type].acceleration.toFixed(2)}`, 40, y);
+          y += 50;
+        });
+
+        // Draw global parameters
+        context.fillText(`Global Speed: ${behaviorParams.globalSpeedMultiplier.toFixed(2)}`, 20, y);
+        y += 30;
+        context.fillText(`Center Attraction: ${behaviorParams.globalCenterAttraction.toFixed(2)}`, 20, y);
+        
+        // Update the texture
+        guiElements.texture.needsUpdate = true;
+      }
+
+      // GPUComputationRenderer setup.
+      gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, renderer);
+      if(renderer.capabilities.isWebGL2 === false) {
+        gpuCompute.setDataType(THREE.HalfFloatType);
+      }
+
+      // Create initial textures.
+      const dtPosition = gpuCompute.createTexture();
+      const dtVelocity = gpuCompute.createTexture();
+      const dtAdditional = gpuCompute.createTexture();
+      fillPositionTexture(dtPosition);
+      fillVelocityTexture(dtVelocity);
+      fillAdditionalTexture(dtAdditional);
+
+      // Add GPU variables.
+      posVariable = gpuCompute.addVariable("texturePosition", document.getElementById("positionShader").textContent, dtPosition);
+      velVariable = gpuCompute.addVariable("textureVelocity", document.getElementById("velocityShader").textContent, dtVelocity);
+      addVariable = gpuCompute.addVariable("textureAdditional", document.getElementById("additionalDataShader").textContent, dtAdditional);
+      gpuCompute.setVariableDependencies(posVariable, [posVariable, velVariable, addVariable]);
+      gpuCompute.setVariableDependencies(velVariable, [posVariable, velVariable, addVariable]);
+      gpuCompute.setVariableDependencies(addVariable, [addVariable]);
+
+      // Add common uniforms.
+      posVariable.material.uniforms.delta = { value: 0.0 };
+      posVariable.material.uniforms.bounds = { value: new THREE.Vector3(BOUNDS, BOUNDS, BOUNDS) };
+
+      velVariable.material.uniforms.delta = { value: 0.0 };
+      velVariable.material.uniforms.speeds = { value: [
+        behaviorParams.type0.speed,
+        behaviorParams.type1.speed,
+        behaviorParams.type2.speed,
+        behaviorParams.type3.speed
+      ]};
+      velVariable.material.uniforms.ranges = { value: [
+        behaviorParams.type0.range,
+        behaviorParams.type1.range,
+        behaviorParams.type2.range,
+        behaviorParams.type3.range
+      ]};
+      velVariable.material.uniforms.accelerations = { value: [
+        behaviorParams.type0.acceleration,
+        behaviorParams.type1.acceleration,
+        behaviorParams.type2.acceleration,
+        behaviorParams.type3.acceleration
+      ]};
+      velVariable.material.uniforms.globalSpeedMultiplier = { value: behaviorParams.globalSpeedMultiplier };
+      // Set the interaction matrix uniform.
+      velVariable.material.uniforms.interactionMatrix = { value: interactionMatrix };
+
+      addVariable.material.uniforms.delta = { value: 0.0 };
+
+      velVariable.material.uniforms.globalCenterAttraction = { value: behaviorParams.globalCenterAttraction };
+
+
+      const error = gpuCompute.init();
+      if(error !== null){
+        console.error(error);
+      }
+
+      // Create instanced cubes with optimized material
+      const cubeGeometry = new THREE.BoxGeometry(0.015, 0.015, 0.03);
+      cubeGeometry.computeBoundingSphere();
+      
+      const instanceMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          texturePosition: { value: null },
+          textureVelocity: { value: null },
+          textureAdditional: { value: null },
+          particleResolution: { value: WIDTH },
+          scaleMultiplier: { value: behaviorParams.scaleMultiplier },
+          typeColors0: { value: new THREE.Color(behaviorParams.type0.color) },
+          typeColors1: { value: new THREE.Color(behaviorParams.type1.color) },
+          typeColors2: { value: new THREE.Color(behaviorParams.type2.color) },
+          typeColors3: { value: new THREE.Color(behaviorParams.type3.color) },
+          typeColors0_back: { value: new THREE.Color(behaviorParams.type0.color2) },
+          typeColors1_back: { value: new THREE.Color(behaviorParams.type1.color2) },
+          typeColors2_back: { value: new THREE.Color(behaviorParams.type2.color2) },
+          typeColors3_back: { value: new THREE.Color(behaviorParams.type3.color2) }
+        },
+        vertexShader: document.getElementById("cubeVertexShader").textContent,
+        fragmentShader: document.getElementById("cubeFragmentShader").textContent,
+        transparent: true,
+        depthWrite: true,
+        depthTest: true,
+        side: THREE.FrontSide  // Only render front faces
+      });
+
+      const instancedMesh = new THREE.InstancedMesh(cubeGeometry, instanceMaterial, NUM_PARTICLES);
+      instancedMesh.frustumCulled = false;
+      instancedMesh.matrixAutoUpdate = false;  // Disable automatic matrix updates
+      scene.add(instancedMesh);
+
+      // Animation loop.
+      function animate() {
+        renderer.setAnimationLoop(render);
+      }
+
+      function render() {
+        const now = performance.now();
+        let delta = Math.min((now - lastTime) / 1000, 1);
+        lastTime = now;
+
+        // Update GPU computation
+        posVariable.material.uniforms.delta.value = delta;
+        velVariable.material.uniforms.delta.value = delta;
+        addVariable.material.uniforms.delta.value = delta;
+
+        gpuCompute.compute();
+
+        // Update instance material uniforms
+        const positionTarget = gpuCompute.getCurrentRenderTarget(posVariable).texture;
+        const velocityTarget = gpuCompute.getCurrentRenderTarget(velVariable).texture;
+        const additionalTarget = gpuCompute.getCurrentRenderTarget(addVariable).texture;
+
+        instanceMaterial.uniforms.texturePosition.value = positionTarget;
+        instanceMaterial.uniforms.textureVelocity.value = velocityTarget;
+        instanceMaterial.uniforms.textureAdditional.value = additionalTarget;
+        instanceMaterial.uniforms.scaleMultiplier.value = behaviorParams.scaleMultiplier;
+        
+        // Clear manually for better control
+        renderer.clear();
+        
+        // Update GUI less frequently
+        if (now % 16 === 0) {  // Update GUI roughly every 16ms
+          updateGUITexture();
+        }
+        
+        controls.update();
+        renderer.render(scene, camera);
+        
+        // Reset renderer info periodically
+        if (now % 1000 === 0) {  // Reset every second
+          renderer.info.reset();
+        }
+      }
+
+      // Start the animation loop
+      animate();
+
+      // Window resize handler
+      window.addEventListener('resize', onWindowResize, false);
+      
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // Texture initialization functions.
+      function fillPositionTexture(texture) {
+        const data = texture.image.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = (Math.random() - 0.5) * BOUNDS * 0.5;
+          data[i + 1] = 1.5 + (Math.random() - 0.5) * BOUNDS * 0.5;
+          data[i + 2] = (Math.random() - 0.5) * BOUNDS * 0.5;
+          data[i + 3] = 1.0;
+        }
+      }
+      function fillVelocityTexture(texture) {
+        const data = texture.image.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = (Math.random() - 0.5) * .002;
+          data[i + 1] = (Math.random() - 0.5) * .002;
+          data[i + 2] = (Math.random() - 0.5) * .002;
+          data[i + 3] = 1.0;
+        }
+      }
+      function fillAdditionalTexture(texture) {
+        const data = texture.image.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.floor(Math.random() * 4);
+          data[i + 1] = 0.0;
+          data[i + 2] = 0.0;
+          data[i + 3] = 1.0;
+        }
+      }
+
+      // Randomize all parameters, including the interaction matrix.
+      function randomizeParameters() {
+        ['type0','type1','type2','type3'].forEach(type => {
+          behaviorParams[type].speed = THREE.MathUtils.randFloat(1.5, 20.0);
+          behaviorParams[type].range = THREE.MathUtils.randFloat(0.2, 1.0);
+          behaviorParams[type].acceleration = THREE.MathUtils.randFloat(0.7, 1.0);
+          behaviorParams[type].decay = THREE.MathUtils.randFloat(0.0, 0.0);
+          //behaviorParams[type].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        });
+        behaviorParams.scaleMultiplier = THREE.MathUtils.randFloat(1.5, 10.0);
+        behaviorParams.globalSpeedMultiplier = THREE.MathUtils.randFloat(0.8, 1.2);
+
+        // Randomize the 4x4 interaction matrix.
+        for(let i = 0; i < 16; i++){
+          interactionMatrix[i] = THREE.MathUtils.randFloat(-1, 1);
+        }
+        
+        // Update GPU uniforms.
+        velVariable.material.uniforms.speeds.value = [
+          behaviorParams.type0.speed,
+          behaviorParams.type1.speed,
+          behaviorParams.type2.speed,
+          behaviorParams.type3.speed
+        ];
+        velVariable.material.uniforms.ranges.value = [
+          behaviorParams.type0.range,
+          behaviorParams.type1.range,
+          behaviorParams.type2.range,
+          behaviorParams.type3.range
+        ];
+        velVariable.material.uniforms.accelerations.value = [
+          behaviorParams.type0.acceleration,
+          behaviorParams.type1.acceleration,
+          behaviorParams.type2.acceleration,
+          behaviorParams.type3.acceleration
+        ];
+        velVariable.material.uniforms.globalSpeedMultiplier.value = behaviorParams.globalSpeedMultiplier;
+        velVariable.material.uniforms.interactionMatrix.value = interactionMatrix;
+        //instanceMaterial.uniforms.typeColors0.value.set(behaviorParams.type0.color);
+        //instanceMaterial.uniforms.typeColors1.value.set(behaviorParams.type1.color);
+        //instanceMaterial.uniforms.typeColors2.value.set(behaviorParams.type2.color);
+        //instanceMaterial.uniforms.typeColors3.value.set(behaviorParams.type3.color);
+      }
+    </script>
+  </body>
+</html>
