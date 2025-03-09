@@ -227,7 +227,7 @@
         );
         
         float speed = length(simVel);
-        float forwardScale = min(1.0 + speed * scaleMultiplier, 2.0);
+        float forwardScale = min(1.0 + speed * scaleMultiplier, 4.0);
         mat4 scaleMatrix = mat4(
           vec4(1.0, 0.0, 0.0, 0.0),
           vec4(0.0, 1.0, 0.0, 0.0),
@@ -272,29 +272,29 @@
       
       void main() {
         // Normalize y position to 0-1 range
-        float yPos = (vPosition.y + 6.0) / 12.0;
-
-        // Define ocean colors
-        vec3 deepBlue    = vec3(0.0, 0.025, 0.1);
-        vec3 midBlue     = vec3(0.0, 0.15, 0.3);
-        vec3 lightBlue   = vec3(0.04642857, 0.26928571, 0.60357143);
-        vec3 surfaceBlue = vec3(0.0, 0.425, 0.85);
+        float yPos = (vPosition.y + 6.0) / 12.0;  // Assuming sphere radius of 10
+        
+        // Define ocean colors with purple hue and reduced saturation
+        vec3 color4 = vec3(0.02, 0.01, 0.08);    // Deep purple-blue (darkest)
+        vec3 color3 = vec3(0.05, 0.02, 0.15);    // Deep purple-blue (darkest)
+        vec3 color2 = vec3(0.15, 0.12, 0.25);     // Deep purple
+        vec3 color1 = vec3(0.23, 0.2, 0.35);     // Mid purple
         
         // Create gradient
         vec3 color;
         float alpha;
         
         if(yPos < 0.6) {
-          color = deepBlue;
+          color = color1;
         } else if(yPos < 0.8) {
           float t = (yPos - 0.6) / 0.2;
-          color = mix(deepBlue, midBlue, t);
-        } else if(yPos < 0.93) {
-          float t = (yPos - 0.8) / 0.13;
-          color = mix(midBlue, lightBlue, t);
+          color = mix(color1, color2, t);
+        } else if(yPos < 0.9) {
+          float t = (yPos - 0.8) / 0.1;
+          color = mix(color2, color3, t);
         } else {
-          float t = (yPos - 0.93) / 0.07;
-          color = mix(lightBlue, surfaceBlue, t);
+          float t = (yPos - 0.9) / 0.1;
+          color = mix(color3, color4, t);
         }
 
         if (yPos < 0.4) {
@@ -322,7 +322,7 @@
 
       let scene, camera, renderer, controls;
       let gpuCompute, posVariable, velVariable, addVariable;
-      const WIDTH = 64; // Texture resolution (adjust to change particle count)
+      const WIDTH = 128; // Texture resolution (adjust to change particle count)
       const NUM_PARTICLES = WIDTH * WIDTH;
       const BOUNDS = 10;
       let lastTime = performance.now();
@@ -540,11 +540,6 @@
         }
       }
 
-      // Remove controller model factory and grips
-      const light = new THREE.DirectionalLight(0xffffff, 1.0);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0x404040));
-
       // Create GUI mesh
       function createGUIMesh() {
         const guiWidth = 0.2;  // Smaller size for AR
@@ -676,7 +671,8 @@
       }
 
       // Create instanced cubes with optimized material
-      const cubeGeometry = new THREE.BoxGeometry(0.015, 0.015, 0.03);
+      //const cubeGeometry = new THREE.BoxGeometry(0.015, 0.015, 0.03);
+      const cubeGeometry = new THREE.OctahedronGeometry(0.01, 0);
       cubeGeometry.computeBoundingSphere();
       
       const instanceMaterial = new THREE.ShaderMaterial({
@@ -817,7 +813,7 @@
           behaviorParams[type].decay = THREE.MathUtils.randFloat(0.0, 0.0);
           //behaviorParams[type].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
         });
-        behaviorParams.scaleMultiplier = THREE.MathUtils.randFloat(1.5, 10.0);
+        behaviorParams.scaleMultiplier = THREE.MathUtils.randFloat(8.0, 16.0);
         behaviorParams.globalSpeedMultiplier = THREE.MathUtils.randFloat(0.6, 0.8);
 
         // Randomize the 4x4 interaction matrix.
