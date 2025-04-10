@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let scene, renderer, camera;
 let model, skeleton, mixer, clock;
+let chatContainer, chatInput, chatSendButton, chatMessages;
 
 const crossFadeControls = [];
 
@@ -26,9 +27,187 @@ const additiveActions = {
 };
 let panelSettings, numAnimations;
 
+// Chat API configuration
+const CHAT_API_URL = 'https://rollinabox.app.n8n.cloud/webhook/f406671e-c954-4691-b39a-66c90aa2f103/chat';
+
+// Create chat UI
+function createChatUI() {
+  chatContainer = document.createElement('div');
+  chatContainer.style.position = 'fixed';
+  chatContainer.style.bottom = '20px';
+  chatContainer.style.left = '20px';
+  chatContainer.style.width = '300px';
+  chatContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+  chatContainer.style.borderRadius = '10px';
+  chatContainer.style.padding = '10px';
+  chatContainer.style.zIndex = '1000';
+
+  chatMessages = document.createElement('div');
+  chatMessages.style.height = '200px';
+  chatMessages.style.overflowY = 'auto';
+  chatMessages.style.marginBottom = '10px';
+  chatMessages.style.padding = '5px';
+  chatContainer.appendChild(chatMessages);
+
+  const inputContainer = document.createElement('div');
+  inputContainer.style.display = 'flex';
+  inputContainer.style.gap = '5px';
+
+  chatInput = document.createElement('input');
+  chatInput.type = 'text';
+  chatInput.placeholder = 'Type your message...';
+  chatInput.style.flex = '1';
+  chatInput.style.padding = '5px';
+  chatInput.style.borderRadius = '5px';
+  chatInput.style.border = '1px solid #ccc';
+
+  chatSendButton = document.createElement('button');
+  chatSendButton.textContent = 'Send';
+  chatSendButton.style.padding = '5px 10px';
+  chatSendButton.style.borderRadius = '5px';
+  chatSendButton.style.border = 'none';
+  chatSendButton.style.backgroundColor = '#4CAF50';
+  chatSendButton.style.color = 'white';
+  chatSendButton.style.cursor = 'pointer';
+
+  inputContainer.appendChild(chatInput);
+  inputContainer.appendChild(chatSendButton);
+  chatContainer.appendChild(inputContainer);
+
+  document.body.appendChild(chatContainer);
+
+  // Add event listeners
+  chatSendButton.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+}
+
+// Send message to chatbot
+async function sendMessage() {
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  // Add user message to chat
+  addMessageToChat('You: ' + message, 'user');
+  chatInput.value = '';
+
+  // Add message to conversation history
+  conversationHistory.push({ role: 'user', content: message });
+  
+  // Update stored conversation history
+  sessionStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+
+  try {
+    console.log('Sending message to chatbot:', message);
+    console.log('Session ID:', sessionId);
+    console.log('Conversation history:', conversationHistory);
+    
+    const response = await fetch(CHAT_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        metadata: {
+          sessionId: sessionId
+        }
+      }),
+    });
+
+    console.log('Raw API Response:', response);
+    const data = await response.json();
+    console.log('Parsed API Response:', data);
+    console.log('Dialog:', data.dialog);
+    console.log('Sentiment ID:', data.sentiment);
+    
+    // Add bot response to chat using the dialog field
+    if (data.dialog) {
+      addMessageToChat('Bot: ' + data.dialog, 'bot');
+      // Add bot response to conversation history
+      conversationHistory.push({ role: 'assistant', content: data.dialog });
+      // Update stored conversation history
+      sessionStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+    } else {
+      console.error('No dialog field in response:', data);
+      addMessageToChat('Error: Invalid response format from bot', 'error');
+    }
+    
+    // Handle animation based on sentiment ID
+    if (data.sentiment !== undefined) {
+      console.log('Triggering animation for sentiment ID:', data.sentiment);
+      handleSentimentAnimation(data.sentiment);
+    } else {
+      console.error('No sentiment field in response:', data);
+      handleSentimentAnimation(0); // Default to neutral
+    }
+  } catch (error) {
+    console.error('Error in API call:', error);
+    addMessageToChat('Error: Failed to get response from bot', 'error');
+  }
+}
+
+// Add message to chat display
+function addMessageToChat(message, type) {
+  const messageElement = document.createElement('div');
+  messageElement.textContent = message;
+  messageElement.style.margin = '5px 0';
+  messageElement.style.padding = '5px';
+  messageElement.style.borderRadius = '5px';
+  
+  switch(type) {
+    case 'user':
+      messageElement.style.backgroundColor = '#e3f2fd';
+      messageElement.style.marginLeft = '20px';
+      break;
+    case 'bot':
+      messageElement.style.backgroundColor = '#f5f5f5';
+      messageElement.style.marginRight = '20px';
+      break;
+    case 'error':
+      messageElement.style.backgroundColor = '#ffebee';
+      messageElement.style.color = '#c62828';
+      break;
+  }
+  
+  chatMessages.appendChild(messageElement);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Handle sentiment-based animation
+function handleSentimentAnimation(sentimentId) {
+  let targetAction = 'standby'; // default for neutral (0)
+  
+  // Map sentiment ID to animation
+  switch(sentimentId) {
+    case 1: // sad
+      targetAction = 'triste';
+      break;
+    case 2: // happy
+      targetAction = 'feliz';
+      break;
+    default: // 0 or any other value
+      targetAction = 'standby';
+  }
+
+  // Crossfade to the target animation
+  const currentSettings = baseActions[currentBaseAction];
+  const currentAction = currentSettings ? currentSettings.action : null;
+  const targetSettings = baseActions[targetAction];
+  const targetActionObj = targetSettings ? targetSettings.action : null;
+
+  if (currentAction !== targetActionObj) {
+    prepareCrossFade(currentAction, targetActionObj, 0.35);
+  }
+}
+
 init();
 
 function init() {
+  createChatUI();
 
   const container = document.getElementById( 'container' );
   clock = new THREE.Clock();

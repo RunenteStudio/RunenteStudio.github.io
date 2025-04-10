@@ -15,8 +15,8 @@ limitations under the License. */
 @use "@material";
 body {
   font-family: roboto;
-  margin: 2em;
   color: #3d3d3d;
+  width: 100%;
   --mdc-theme-primary: #007f8b;
   --mdc-theme-on-primary: #f1f3f4;
 }
@@ -65,7 +65,6 @@ section {
 }
 
 .segmentOnClick p {
-  padding: 5px;
   background-color: #007f8b;
   color: #fff;
   z-index: 2;

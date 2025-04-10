@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Joystick and Click Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: #f5f5f5;
+      touch-action: none; /* Prevent zooming on mobile */
+    }
+
+    /* Joystick container */
+    #joystick {
+      width: 90vw;
+      height: 90vw;
+      background: lightgray;
+      position: relative;
+      margin: 10px auto;
+      touch-action: none;
+    }
+
+    /* Movable handle */
+    #handle {
+      width: 25%;
+      height: 25%;
+      background: darkgray;
+      border-radius: 50%;
+      position: absolute;
+      left: calc(50% - 12.5%);
+      top: calc(50% - 12.5%);
+      pointer-events: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: transform 0.1s ease;
+    }
+
+    @media (max-width: 480px) {
+      #joystick {
+        width: 90vw;
+        height: 90vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="joystick">
+    <div id="handle"></div>
+  </div>
+
+  <script>
+    const joystick = document.getElementById('joystick');
+    const handle = document.getElementById('handle');
+
+    // Dimensions
+    const jsRect = joystick.getBoundingClientRect();
+    const jsWidth = joystick.clientWidth;
+    const jsHeight = joystick.clientHeight;
+    const handleWidth = handle.clientWidth;
+    const handleHeight = handle.clientHeight;
+    
+    let dragging = false;
+    let activeTouchId = null;
+    let lastClickTime = 0;
+    const DOUBLE_CLICK_THRESHOLD = 300; // milliseconds
+
+    // Helper: Get pointer position relative to the joystick container
+    function getPointerPosition(e) {
+      let clientX, clientY;
+      if (e.touches && e.touches.length > 0) {
+        const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId) || e.touches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const rect = joystick.getBoundingClientRect();
+      let x = clientX - rect.left;
+      let y = clientY - rect.top;
+      return { x, y };
+    }
+
+    // Update the handle position while dragging
+    function updateHandle(e) {
+      if (!dragging) return;
+      
+      e.preventDefault();
+      const pos = getPointerPosition(e);
+      
+      let x = pos.x - handleWidth / 2;
+      let y = pos.y - handleHeight / 2;
+      
+      x = Math.max(0, Math.min(x, jsWidth - handleWidth));
+      y = Math.max(0, Math.min(y, jsHeight - handleHeight));
+
+      handle.style.left = x + 'px';
+      handle.style.top = y + 'px';
+
+      const centerX = jsWidth / 2 - handleWidth / 2;
+      const centerY = jsHeight / 2 - handleHeight / 2;
+      const offsetX = x - centerX;
+      const offsetY = y - centerY;
+      
+      console.log(`Joystick position: offsetX=${offsetX.toFixed(2)}, offsetY=${offsetY.toFixed(2)}`);
+    }
+
+    // Handle click detection
+    function handleClick(e) {
+      e.preventDefault();
+      const currentTime = new Date().getTime();
+      const timeSinceLastClick = currentTime - lastClickTime;
+      
+      if (timeSinceLastClick < DOUBLE_CLICK_THRESHOLD) {
+        console.log('Double click detected!');
+        // Handle double click
+      } else {
+        console.log('Single click detected!');
+        // Handle single click
+      }
+      
+      lastClickTime = currentTime;
+    }
+
+    // When starting to drag (mouse down / touch start)
+    function startDrag(e) {
+      e.preventDefault();
+      if (e.touches) {
+        activeTouchId = e.touches[0].identifier;
+      }
+      dragging = true;
+      updateHandle(e);
+    }
+
+    // When ending the drag
+    function endDrag(e) {
+      if (!dragging) return;
+      
+      if (e.touches && activeTouchId !== null) {
+        const remainingTouch = Array.from(e.touches).find(t => t.identifier === activeTouchId);
+        if (remainingTouch) return;
+      }
+      
+      dragging = false;
+      activeTouchId = null;
+      //console.log('Joystick released: staying in position.');
+    }
+
+    // Mouse events
+    joystick.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', updateHandle);
+    document.addEventListener('mouseup', endDrag);
+    joystick.addEventListener('click', handleClick);
+
+    // Touch events
+    joystick.addEventListener('touchstart', startDrag);
+    document.addEventListener('touchmove', updateHandle);
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchcancel', endDrag);
+    joystick.addEventListener('touchend', handleClick);
+  </script>
+</body>
+</html>

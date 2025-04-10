@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link type="text/css" rel="stylesheet" href="main.css">
+    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
 
     <style>
       a {
@@ -12,6 +13,14 @@
       }
       .control-inactive button {
         color: #888;
+      }
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #container {
+        width: 100vw;
+        height: 100vh;
       }
     </style>
   </head>
@@ -22,7 +31,6 @@
     <script type="importmap">
       {
             "imports": {
-
                     "three":            "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
                     "three/addons/":    "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
             }
@@ -30,6 +38,10 @@
     </script>
 
     <script type="module" src="main.js"></script>
+    <script type="module">
+        import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+        window.createChat = createChat;
+    </script>
 
   </body>
 </html>

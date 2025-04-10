@@ -99,7 +99,7 @@ function adjustImage(contrast, brightness, saturation, color) {
 
 
 /**
- * 01 Image: Segmented images on click and display results.
+ * Demo 1: Segmented images on click and display results.
  */
 let canvasClick;
 async function handleClick(event) {
@@ -158,7 +158,7 @@ function callback(result) {
 
 
 /********************************************************************
-// 02 Video: Continuously grab image from webcam stream and segmented it.
+// Demo 2: Continuously grab image from webcam stream and segmented it.
 ********************************************************************/
 // Check if webcam access is supported.
 function callbackForVideo(result) {

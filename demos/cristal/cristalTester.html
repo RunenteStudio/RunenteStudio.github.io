@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Runente attract</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      canvas { display: block; }
+    </style>
+    <!-- Import map for three modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/",
+          "GLTFLoader": "https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js",
+          "OrbitControls": "https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'GLTFLoader';
+      import { OrbitControls } from 'OrbitControls';
+      import { HDRCubeTextureLoader } from 'three/addons/loaders/HDRCubeTextureLoader.js';
+
+      // ----- Scene Setup -----
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x454545);
+
+      const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 1, 10);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+      pmremGenerator.compileCubemapShader();
+
+      // ----- HDRI Environment -----
+      const hdrUrls = [ 'PX2.hdr', 'NX2.hdr', 'PY.hdr', 'NY2.hdr', 'PZ.hdr', 'NZ.hdr' ];
+      let hdrCubeMap = new HDRCubeTextureLoader()
+        .setPath('../hdri/')
+        .load(hdrUrls, function () {
+          const hdrCubeRenderTarget = pmremGenerator.fromCubemap(hdrCubeMap);
+          scene.environment = hdrCubeRenderTarget.texture;
+          scene.environmentIntensity = 1;
+        });
+
+      // ----- Global Physics Parameters -----
+      const NEIGHBOR_RADIUS = 0.7;
+      const attractionCoefficient = 0.9;   // when <= 4 neighbors
+      const repulsionCoefficient = 0.5;    // when > 4 neighbors (scaled by count)
+      const centerCoefficient = 40;       // spring force toward center when no neighbors
+      const maxSpeedFactor = 2.0;          // max speed = maxSpeedFactor/mass (mass = scale)
+      const damping = 0.5;                // damping factor in Verlet integration
+      const forceSmoothing = 0.95;          // smoothing factor for force lerp
+      const noiseMagnitude = 0.05;         // magnitude of small random noise
+
+      // ----- Clones Array & Collision Base -----
+      const clones = [];
+      const BASE_COLLISION_RADIUS = 0.8;
+
+      // ----- Load Model and Initialize Clones -----
+      const loader = new GLTFLoader();
+      loader.load('/demos/cristal/cristal.glb', function (gltf) {
+        const original = gltf.scene;
+        const customMaterial = new THREE.MeshPhysicalMaterial({
+          color: 0xffffff,
+          metalness: 0.95,
+          roughness: 0.50,
+          clearcoat: 0.0,
+          clearcoatRoughness: 0.0
+        });
+        original.traverse(child => {
+          if (child.isMesh) {
+            child.material = customMaterial;
+          }
+        });
+
+        // Create 25 clones with random transforms
+        for (let i = 0; i < 50; i++) {
+          const clone = original.clone();
+
+          clone.position.set(
+            Math.random() * 4 - 2,
+            Math.random() * 4 - 2,
+            Math.random() * 4 - 2
+          );
+          clone.rotation.set(
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2
+          );
+          const scale = 0.5 + Math.random();
+          clone.scale.set(scale, scale, scale);
+
+          // Save a random rotation axis for constant rotation
+          const axis = new THREE.Vector3(
+            Math.random() - 0.5,
+            Math.random() - 0.5,
+            Math.random() - 0.5
+          ).normalize();
+          clone.userData.rotationAxis = axis;
+
+          // For Verlet integration, store the previous position (initially same as current)
+          clone.userData.prevPosition = clone.position.clone();
+
+          // Initialize a force accumulator (for smoothing)
+          clone.userData.force = new THREE.Vector3();
+
+          // Set collision radius based on scale
+          clone.userData.collisionRadius = scale * BASE_COLLISION_RADIUS;
+
+          clones.push(clone);
+          scene.add(clone);
+        }
+      }, undefined, function (error) {
+        console.error('Error loading GLB model:', error);
+      });
+
+      // ----- Resize Handler -----
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // ----- Animation & Physics Loop -----
+      let previousTime = performance.now();
+      function animate() {
+        requestAnimationFrame(animate);
+        const currentTime = performance.now();
+        const dt = (currentTime - previousTime) / 1000;
+        previousTime = currentTime;
+
+        // --- Constant Rotation ---
+        clones.forEach(clone => {
+          clone.rotateOnAxis(clone.userData.rotationAxis, 0.3 * dt);
+        });
+
+        // --- Compute Forces for Each Clone ---
+        clones.forEach(clone => {
+          let newForce = new THREE.Vector3();
+          let neighborCount = 0;
+          clones.forEach(other => {
+            if (other === clone) return;
+            const diff = other.position.clone().sub(clone.position);
+            const dist = diff.length();
+            if (dist < NEIGHBOR_RADIUS && dist > 0.0001) {
+              // Contribution proportional to distance along the normalized direction.
+              newForce.add(diff.clone().normalize().multiplyScalar(dist));
+              neighborCount++;
+            }
+          });
+          if (neighborCount > 8) {
+            newForce.multiplyScalar(-repulsionCoefficient * neighborCount);
+          } else if (neighborCount > 3) {
+            newForce.multiplyScalar(attractionCoefficient);
+          } else {
+            // Spring force toward the center.
+            newForce.add(clone.position.clone().negate().multiplyScalar(centerCoefficient));
+          }
+          // Smooth the force: lerp from previous force to new force.
+          clone.userData.force.lerp(newForce, forceSmoothing);
+        });
+
+        // --- Verlet Integration Update ---
+        clones.forEach(clone => {
+          const mass = clone.scale.x; // mass proportional to scale
+          // Compute acceleration from smoothed force and add small noise.
+          let acceleration = clone.userData.force.clone().divideScalar(mass);
+          const noise = new THREE.Vector3(
+            (Math.random() - 0.5) * noiseMagnitude,
+            (Math.random() - 0.5) * noiseMagnitude,
+            (Math.random() - 0.5) * noiseMagnitude
+          );
+          acceleration.add(noise);
+          
+          // Current and previous positions.
+          const currentPos = clone.position.clone();
+          const prevPos = clone.userData.prevPosition.clone();
+          // Compute displacement from previous frame (with damping).
+          const displacement = currentPos.clone().sub(prevPos).multiplyScalar(damping);
+          // Verlet integration: new position = current + damped displacement + acceleration * dt^2.
+          let newDisplacement = displacement.add(acceleration.multiplyScalar(dt * dt));
+          
+          // Approximate velocity is newDisplacement / dt; clamp it if needed.
+          const maxSpeed = maxSpeedFactor / mass;
+          if (newDisplacement.length() / dt > maxSpeed) {
+            newDisplacement.setLength(maxSpeed * dt);
+          }
+          const newPos = currentPos.clone().add(newDisplacement);
+          
+          // Update previous position and current position.
+          clone.userData.prevPosition.copy(currentPos);
+          clone.position.copy(newPos);
+        });
+
+        // --- Collision Bounce using Verlet-adapted Response ---
+        for (let i = 0; i < clones.length; i++) {
+          for (let j = i + 1; j < clones.length; j++) {
+            const a = clones[i];
+            const b = clones[j];
+            const diff = b.position.clone().sub(a.position);
+            const distance = diff.length();
+            const rA = a.userData.collisionRadius;
+            const rB = b.userData.collisionRadius;
+            if (distance < (rA + rB) && distance > 0.0001) {
+              const normal = diff.clone().normalize();
+              // Approximate velocities computed from Verlet positions.
+              const vA = a.position.clone().sub(a.userData.prevPosition).divideScalar(dt);
+              const vB = b.position.clone().sub(b.userData.prevPosition).divideScalar(dt);
+              const relativeVelocity = vB.clone().sub(vA);
+              const speed = relativeVelocity.dot(normal);
+              if (speed < 0) { // They are moving toward each other.
+                const massA = a.scale.x;
+                const massB = b.scale.x;
+                const impulse = -(1 + 0.8) * speed / (1 / massA + 1 / massB);
+                const impulseVec = normal.clone().multiplyScalar(impulse);
+                // Update velocities.
+                const newVA = vA.clone().add(impulseVec.clone().divideScalar(massA));
+                const newVB = vB.clone().sub(impulseVec.clone().divideScalar(massB));
+                // Update previous positions based on new velocities.
+                a.userData.prevPosition.copy(a.position.clone().sub(newVA.multiplyScalar(dt)));
+                b.userData.prevPosition.copy(b.position.clone().sub(newVB.multiplyScalar(dt)));
+              }
+              // Positional correction: resolve penetration.
+              const penetration = (rA + rB) - distance;
+              const correction = normal.clone().multiplyScalar(penetration / 2);
+              a.position.add(correction.clone().negate());
+              b.position.add(correction);
+            }
+          }
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+    </script>
+  </body>
+</html>
