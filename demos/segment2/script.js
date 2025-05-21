@@ -217,6 +217,7 @@ function callbackForVideo(result) {
     const uint8Array = new Uint8ClampedArray(imageData.buffer);
     const dataNew = new ImageData(uint8Array, video.videoWidth, video.videoHeight);
     canvasCtx.putImageData(dataNew, 0, 0);
+
     if (webcamRunning === true) {
         window.requestAnimationFrame(predictWebcam);
     }

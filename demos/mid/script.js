@@ -23,29 +23,7 @@ let runningMode = "IMAGE";
 const resultWidthHeigth = 256;
 let imageSegmenter;
 let labels;
-const legendColors = [
-    [0, 0, 0, 255],
-    [255, 0, 0, 255], //cabello
-    [255, 255, 255, 255], //piel
-    [255, 255, 255, 255], //piel
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255],
-    [0, 0, 0, 255]
-];
+
 const createImageSegmenter = async () => {
     const audio = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm");
     imageSegmenter = await ImageSegmenter.createFromOptions(audio, {
@@ -169,15 +147,13 @@ function callbackForVideo(result) {
     // 01 - cabello
     // 02 - piel
     // 03 - cara
-
+    console.log(mask.length)
     for (let i = 0; i < mask.length; ++i) {
         const maskVal = Math.round(mask[i] * 255.0);
-        const index = maskVal % legendColors.length;
+        const index = maskVal;
         const contrast = 1.0;
-        let legendColor = legendColors[index];
+        let legendColor = [0, 0, 255, 255];
         let newColor = [0, 0, 0, 255]
-
-        //legendColors ya no se necesita
 
         // cabello
         if(index == 1){
@@ -195,7 +171,7 @@ function callbackForVideo(result) {
             newColor[2] = imageData[i * 4 + 2];
             newColor[3] = imageData[i * 4 + 3];
 
-            newColor = adjustImage(0.85, 15.0, 0.95, newColor);
+            newColor = adjustImage(0.9, 10.0, 0.95, newColor);
 
         // lo demás
         } else{
