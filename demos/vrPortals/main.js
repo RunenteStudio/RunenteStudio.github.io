@@ -46,7 +46,7 @@ scene.add(light);
 const textureLoader = new THREE.TextureLoader();
 const textures = [];
 let loadedCount = 0;
-const files = ['space1.jpg', 'space2.jpg', 'space3.jpg'];
+const files = ['space1.jpg', 'space2.jpg', 'space3.jpg', 'space4.jpg'];
 
 files.forEach((file, i) => {
   textureLoader.load(`textures/${file}`, tex => {

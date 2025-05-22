@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shooter Control</title>
+  <!-- Include glMatrix from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    label {
+      font-size: 16px;
+      margin-right: 5px;
+    }
+    select {
+      font-size: 16px;
+      padding: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    /* Style for the big action button */
+    #actionButton {
+      width: 100%;
+      height: 100vw;
+      padding: 20px;
+      font-size: 24px;
+      margin-top: 20px;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+    #actionButton.pressed {
+      filter: brightness(70%);
+    }
+    .slider-container {
+      margin-bottom: 20px;
+    }
+    .color-preview {
+      width: 100%;
+      height: 100px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Enviar color por WebSocket</h1>
+  <div class="slider-container">
+    <label for="redSlider">Rojo</label>
+    <input type="range" id="redSlider" min="0" max="1" value="0.5" step="0.01">
+  </div>
+  <div class="slider-container">
+    <label for="greenSlider">Verde</label>
+    <input type="range" id="greenSlider" min="0" max="1" value="0.5" step="0.01">
+  </div>
+  <div class="slider-container">
+    <label for="blueSlider">Azul</label>
+    <input type="range" id="blueSlider" min="0" max="1" value="0.5" step="0.01">
+  </div>
+  <div id="colorPreview" class="color-preview"></div>
+  <button id="sendButton">Enviar color</button>
+
+  <script>
+    let ws = new WebSocket("wss://td-tests-b8ab469bdcc6.herokuapp.com");
+
+    const redSlider = document.getElementById("redSlider");
+    const greenSlider = document.getElementById("greenSlider");
+    const blueSlider = document.getElementById("blueSlider");
+    const colorPreview = document.getElementById("colorPreview");
+    const sendButton = document.getElementById("sendButton");
+
+    function updatePreviewColor() {
+      const r = Math.round(redSlider.value * 255);
+      const g = Math.round(greenSlider.value * 255);
+      const b = Math.round(blueSlider.value * 255);
+      colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    redSlider.addEventListener("input", updatePreviewColor);
+    greenSlider.addEventListener("input", updatePreviewColor);
+    blueSlider.addEventListener("input", updatePreviewColor);
+    updatePreviewColor();
+
+    sendButton.addEventListener("click", () => {
+      const color = [
+        parseFloat(redSlider.value),
+        parseFloat(greenSlider.value),
+        parseFloat(blueSlider.value)
+      ];
+      const message = JSON.stringify({
+        color: color,
+        button: 1
+      });
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+  </script>
+</body>
+</html>
