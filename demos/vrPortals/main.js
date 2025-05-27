@@ -44,11 +44,31 @@ scene.add(light);
 
 // Load 360° textures
 const textureLoader = new THREE.TextureLoader();
+
+let videoTexture;
+const video = document.createElement('video');
+video.src = 'textures/space5.mp4';
+video.crossOrigin = 'anonymous';
+video.loop = true;
+video.muted = true;
+video.playsInline = true;
+videoTexture = new THREE.VideoTexture(video);
+videoTexture.mapping = THREE.EquirectangularReflectionMapping;
+videoTexture.colorSpace = THREE.SRGBColorSpace;
+
 const textures = [];
 let loadedCount = 0;
-const files = ['space1.jpg', 'space2.jpg', 'space3.jpg', 'space4.jpg'];
+const files = ['space1.jpg', 'space2.jpg', 'space3.jpg', 'space4.jpg', null];
 
 files.forEach((file, i) => {
+  if (!file) {
+    loadedCount++;
+    if (loadedCount === files.length) {
+      initScene();
+      loadingDiv.remove();
+    }
+    return;
+  }
   textureLoader.load(`textures/${file}`, tex => {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -66,8 +86,11 @@ const spheres = [];
 const sphereRadius = 0.15;
 
 function initScene() {
+  textures[4] = videoTexture;
   textures.forEach((texture, i) => {
-    const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
+    const material = (i === 4)
+      ? new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide })
+      : new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
     const geometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set((i - 1) * 0.5, 0, -0.5);
@@ -113,6 +136,9 @@ function addHand(hand) {
 function enterPortal(sphere, viewerPosition) {
   console.log('Entering portal', sphere.userData.id);
   portalSphere = sphere;
+  if (sphere.userData.id === 4 && video.paused) {
+    video.play();
+  }
   isInPortal = true;
   const offset = new THREE.Vector3(0, 0, -0.1).applyQuaternion(camera.quaternion);
   // Position is now handled by animateTransform
@@ -130,6 +156,8 @@ function exitPortal() {
   spheres.forEach(s => s.visible = true);
   portalSphere = null;
   isInPortal = false;
+  video.pause();
+  video.currentTime = 0;
 }
 
 function isPinching(hand) {
