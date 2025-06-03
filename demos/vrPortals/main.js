@@ -47,7 +47,7 @@ const textureLoader = new THREE.TextureLoader();
 
 let videoTexture;
 const video = document.createElement('video');
-video.src = 'textures/space5.mp4';
+video.src = 'https://museoar.com/360/hostedspace2.mp4';
 video.crossOrigin = 'anonymous';
 video.loop = true;
 video.muted = true;
@@ -58,7 +58,7 @@ videoTexture.colorSpace = THREE.SRGBColorSpace;
 
 const textures = [];
 let loadedCount = 0;
-const files = ['space1.jpg', 'space2.jpg', 'space3.jpg', 'space4.jpg', null];
+const files = ['https://museoar.com/360/hostedspace1.jpg', 'textures/space2.jpg', 'textures/space3.jpg', 'textures/space4.jpg', null];
 
 files.forEach((file, i) => {
   if (!file) {
@@ -69,7 +69,7 @@ files.forEach((file, i) => {
     }
     return;
   }
-  textureLoader.load(`textures/${file}`, tex => {
+  textureLoader.load(file, tex => {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     tex.colorSpace = THREE.SRGBColorSpace;
     textures[i] = tex;

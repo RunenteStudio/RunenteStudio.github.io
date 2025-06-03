@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Snake Game Render Client</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      color: white;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: sans-serif;
+      font-size: 18px;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="info">Press "S" to start</div>
+  <div id="playerStatus"></div>
+
+  <script type="module">
+    import {
+      Scene,
+      OrthographicCamera,
+      WebGLRenderer,
+      Mesh,
+      MeshBasicMaterial,
+      CircleGeometry,
+      Group
+    } from 'three';
+
+    const GRID_SIZE = 40;
+    const CELL_SIZE = 12;
+    const TICK_INTERVAL = 300;
+    const PLAYER_COLORS = {
+      p1: '#FF4136',
+      p2: '#2ECC40',
+      p3: '#0074D9',
+      p4: '#FFDC00',
+      p5: '#B10DC9'
+    };
+    const FOOD_COUNT = 40;
+    const SERVER_URL = "wss://td-tests-b8ab469bdcc6.herokuapp.com";
+
+    let gameStarted = false;
+    let alivePlayers = new Set();
+    const activePlayers = new Set();
+
+    function createGrid() {
+      const gridGroup = new Group();
+      const geometry = new CircleGeometry(CELL_SIZE * 0.5, 8);
+      const material = new MeshBasicMaterial({ color: '#000000' });
+
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          const dot = new Mesh(geometry, material);
+          dot.position.set(x * CELL_SIZE + CELL_SIZE / 2, y * CELL_SIZE + CELL_SIZE / 2, -1); // -1 to push behind snakes
+          gridGroup.add(dot);
+        }
+      }
+
+      scene.add(gridGroup);
+    }
+
+    const directions = {
+      U: [0, 1],
+      D: [0, -1],
+      L: [-1, 0],
+      R: [1, 0]
+    };
+
+    const players = {};
+    let soloMode = false;
+    let score = 0;
+
+    const foods = [];
+
+    const scene = new Scene();
+    const gameLayer = new Group();
+    scene.add(gameLayer);
+    createGrid();
+
+    const camera = new OrthographicCamera(0, GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE, 0, 0.1, 100);
+    camera.position.z = 10;
+    const renderer = new WebGLRenderer({ antialias: true });
+    renderer.setSize(GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
+    document.body.appendChild(renderer.domElement);
+
+    function createDot(x, y, color) {
+      const geometry = new CircleGeometry(CELL_SIZE * 0.5, 16);
+      const material = new MeshBasicMaterial({ color });
+      const dot = new Mesh(geometry, material);
+      dot.position.set(x * CELL_SIZE + CELL_SIZE / 2, y * CELL_SIZE + CELL_SIZE / 2, 0);
+      gameLayer.add(dot);
+      return dot;
+    }
+
+    function clearScene() {
+      while (gameLayer.children.length > 0) {
+        gameLayer.remove(gameLayer.children[0]);
+      }
+    }
+
+    function updatePlayerStatus() {
+      const playerStatusElem = document.getElementById("playerStatus");
+      let html = "Players<br>";
+
+      for (let pid of ["p1", "p2", "p3", "p4", "p5"]) {
+        html += `${activePlayers.has(pid) ? "✅" : "❌"} `;
+      }
+
+      playerStatusElem.innerHTML = html;
+    }
+
+
+
+    function resetGame() {
+      clearScene();
+      createGrid();
+      foods.length = 0;
+      alivePlayers.clear();
+
+      currentInterval = TICK_INTERVAL; 
+
+      const numPlayers = activePlayers.size;
+      soloMode = (numPlayers === 1);
+      score = 0;
+
+      for (let pid of activePlayers) {
+        const index = [...activePlayers].indexOf(pid);
+        const total = activePlayers.size;
+        const startX = Math.floor((GRID_SIZE / (total + 1)) * (index + 1));
+        const startY = Math.floor(GRID_SIZE * 0.1);
+        players[pid] = {
+          id: pid,
+          dir: 'U',
+          pendingDir: 'U',
+          body: [
+            [startX, startY],
+            [startX, (startY + 1 + GRID_SIZE) % GRID_SIZE],
+            [startX, (startY + 2 + GRID_SIZE) % GRID_SIZE]
+          ],
+          alive: true
+        };
+        alivePlayers.add(pid);
+      }
+
+      spawnFoods();
+    }
+
+    function spawnFoods() {
+      while (foods.length < FOOD_COUNT) {
+        const fx = Math.floor(Math.random() * GRID_SIZE);
+        const fy = Math.floor(Math.random() * GRID_SIZE);
+        if (isOccupied(fx, fy)) continue;
+        foods.push([fx, fy]);
+      }
+    }
+
+    function isOccupied(x, y) {
+      for (let pid in players) {
+        const p = players[pid];
+        if (!p || !p.alive) continue;
+        for (const [bx, by] of p.body) {
+          if (bx === x && by === y) return true;
+        }
+      }
+      return foods.some(f => f[0] === x && f[1] === y);
+    }
+
+    function updateGame() {
+      console.log("=== Tick === gameStarted:", gameStarted, "| alivePlayers:", [...alivePlayers]);
+      if (!gameStarted) return;
+
+      for (let pid in players) {
+        const player = players[pid];
+        if (!player || !player.alive) continue;
+
+        const [dx, dy] = directions[player.pendingDir];
+        const [headX, headY] = player.body[0];
+        let newHead = [
+          (headX + dx + GRID_SIZE) % GRID_SIZE,
+          (headY + dy + GRID_SIZE) % GRID_SIZE
+        ];
+
+        player.body.unshift(newHead);
+
+        const foodIndex = foods.findIndex(f => f[0] === newHead[0] && f[1] === newHead[1]);
+        if (foodIndex !== -1) {
+          foods.splice(foodIndex, 1);
+          spawnFoods();
+          if (soloMode) score++;
+        } else {
+          player.body.pop();
+        }
+
+        player.dir = player.pendingDir;
+      }
+
+      renderScene();
+
+      if (soloMode) {
+        if (alivePlayers.size === 0) {
+          gameStarted = false;
+          document.getElementById("info").textContent = `Game Over. Final score: ${score}`;
+        }
+      } else {
+        if (alivePlayers.size <= 1) {
+          gameStarted = false;
+          const info = document.getElementById("info");
+          info.textContent = alivePlayers.size === 1
+            ? `Winner: ${[...alivePlayers][0]}`
+            : "No winner";
+        }
+      }
+
+    }
+
+    function isCollision(pos, selfId) {
+      for (let pid in players) {
+        const player = players[pid];
+        if (!player || !player.alive) continue;
+
+        // If it's self, skip head segment (index 0)
+        const startIdx = (pid === selfId) ? 1 : 0;
+
+        for (let i = startIdx; i < player.body.length; i++) {
+          const [x, y] = player.body[i];
+          if (x === pos[0] && y === pos[1]) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function renderScene() {
+      clearScene();
+      foods.forEach(([x, y]) => createDot(x, y, '#C8102E'));
+      for (let pid in players) {
+        const player = players[pid];
+        if (!player || !player.alive) continue;
+          for (let i = 0; i < player.body.length; i++) {
+            const [x, y] = player.body[i];
+            const color = (i === 0) ? (PLAYER_COLORS[pid] || '#888') : '#ffffff';
+            createDot(x, y, color);
+          }
+
+      }
+      renderer.render(scene, camera);
+    }
+
+    const ws = new WebSocket(SERVER_URL);
+    ws.onopen = () => console.log("Connected to server");
+
+    ws.onmessage = (msg) => {
+      console.log("Incoming:", msg.data);
+      let data;
+      try {
+        data = JSON.parse(msg.data);
+      } catch (e) {
+        return;
+      }
+
+      if (data.id && data.join) {
+        // Player joins the game session
+
+        if (!players[data.id]) {
+          players[data.id] = {
+            id: data.id,
+            dir: 'U',
+            pendingDir: 'U',
+            body: [],
+            alive: false
+          };
+        }
+        activePlayers.add(data.id);
+        updatePlayerStatus();
+
+        console.log(`${data.id} has joined the game`);
+        return;
+      }
+
+      if (!data.id || !data.dir || !directions[data.dir]) return;
+      if (!players[data.id]) return;
+
+      const player = players[data.id];
+      if (!player.alive || !gameStarted) return;
+
+      const current = player.dir;
+      const next = data.dir;
+      const opposites = { U: 'D', D: 'U', L: 'R', R: 'L' };
+      if (next !== opposites[current]) {
+        player.pendingDir = next;
+      }
+    };
+
+    updatePlayerStatus();
+
+    let currentInterval = TICK_INTERVAL;
+
+    function gameLoop() {
+      updateGame();
+      console.log('loop!');
+      setTimeout(gameLoop, currentInterval);
+    }
+
+    setInterval(() => {
+      if (currentInterval > 50) {
+        currentInterval = currentInterval * 0.9;
+      }
+      console.log(`Speed increased! New interval: ${currentInterval.toFixed(2)}ms`);
+    }, 10000);
+
+
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 's' && !gameStarted) {
+        resetGame();
+        gameStarted = true;
+        gameLoop();
+        document.getElementById("info").textContent = "Game started!";
+      }
+    });
+  </script>
+</body>
+</html>

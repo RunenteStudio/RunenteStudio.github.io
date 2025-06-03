@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snake Control</title>
+  <style>
+    @font-face {
+      font-family: 'Ndot';
+      src: url('Ndot.otf') format('opentype');
+    }
+</style>
+  <style>
+    @media (max-height: 600px) {
+      .controls {
+        margin: 4vw 0;
+      }
+    }
+  </style>
+  <style>
+    @font-face {
+      font-family: 'Lettera';
+      src: url('Lettera.otf') format('opentype');
+    }
+  </style>
+  <style>
+    body {
+      font-family: 'Lettera', sans-serif;
+      background: black;
+      color: white;
+      text-align: center;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    h1 {
+      margin-top: 20px;
+      font-size: 40px;
+      font-family: 'Ndot', sans-serif;
+    }
+    .btn {
+      font-size: 18px;
+      padding: 10px;
+      margin: 5px;
+      width: 100px;
+      border: none;
+      border-radius: 25px;
+      color: white;
+      background: #333;
+    }
+    select {
+      font-size: 18px;
+      padding: 8px;
+      margin-top: 10px;
+    }
+    .dpad-container {
+      position: relative;
+      width: 80vmin;
+      height: 80vmin;
+      max-width: 400px;
+      max-height: 400px;
+      margin: 120px auto;
+    }
+
+    .dpad-button {
+      position: absolute;
+      width: 30%;
+      height: 30%;
+      background-color: #C8102E;
+      border: none;
+      border-radius: 50%;
+      transform: rotate(45deg);
+      transition: background-color 0.2s;
+    }
+
+    .dpad-button:active {
+      background-color: white;
+    }
+
+    .dpad-button.up {
+      top: 0;
+      left: 35%;
+    }
+
+    .dpad-button.down {
+      bottom: 0;
+      left: 35%;
+    }
+
+    .dpad-button.left {
+      left: 0;
+      top: 35%;
+    }
+
+    .dpad-button.right {
+      right: 0;
+      top: 35%;
+    }
+  </style>
+</head>
+<body>
+  <h1>SNAKE CONTROL</h1>
+  <div>STATUS: <span id="connectionStatus">OFF</span></div>
+  <label for="playerSlot">PLAYER:</label>
+  <select id="playerSlot">
+    <option value="p1">//01//</option>
+    <option value="p2">//02//</option>
+    <option value="p3">//03//</option>
+    <option value="p4">//04//</option>
+    <option value="p5">//05//</option>
+  </select>
+
+  <button class="btn" onclick="sendJoin()">JOIN</button>
+
+  <div class="dpad-container">
+    <button class="dpad-button up" onclick="sendDirection('U')"></button>
+    <button class="dpad-button down" onclick="sendDirection('D')"></button>
+    <button class="dpad-button left" onclick="sendDirection('L')"></button>
+    <button class="dpad-button right" onclick="sendDirection('R')"></button>
+  </div>
+
+  <script>
+    const wsUrl = "wss://td-tests-b8ab469bdcc6.herokuapp.com";
+    let ws;
+    const connectionStatus = document.getElementById("connectionStatus");
+    const playerSlot = document.getElementById("playerSlot");
+
+    function connectWebSocket() {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        connectionStatus.textContent = "ON";
+      };
+
+      ws.onclose = () => {
+        connectionStatus.textContent = "OFF";
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        ws.close();
+      };
+
+      ws.onmessage = (msg) => {
+        console.log("Server:", msg.data);
+      };
+    }
+
+    function sendDirection(dir) {
+      const msg = JSON.stringify({
+        id: playerSlot.value,
+        dir: dir
+      });
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
+      }
+    }
+
+    function sendJoin() {
+      const msg = JSON.stringify({
+        id: playerSlot.value,
+        join: true
+      });
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
+      }
+    }
+
+
+    connectWebSocket();
+  </script>
+</body>
+</html>
