@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Control</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      line-height: 1.6;
+      color: white;
+    }
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    .status, .player-slot {
+      margin-bottom: 10px;
+    }
+    label {
+      font-size: 16px;
+      margin-right: 5px;
+    }
+    select {
+      font-size: 16px;
+      padding: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pixel</h1>
+
+  <div id="connectionStatus" class="status">Conectando…</div>
+
+  <!-- Player Slot Selection Dropdown -->
+  <div class="player-slot">
+    <label for="playerSlot">Jugador:</label>
+    <select id="playerSlot">
+      <option value="p1">Player 1</option>
+      <option value="p2">Player 2</option>
+      <option value="p3">Player 3</option>
+      <option value="p4">Player 4</option>
+      <option value="p5">Player 5</option>
+      <option value="p6">Player 6</option>
+      <option value="p7">Player 7</option>
+      <option value="p8">Player 8</option>
+    </select>
+  </div>
+
+  <!-- Disconnect button -->
+  <button id="disconnectButton">Disconnect</button>
+
+  <script>
+    // WebSocket variables
+    let ws;
+    const wsUrl = "wss://td-tests-b8ab469bdcc6.herokuapp.com";
+    let manualDisconnect = false;
+
+    // Get player slot dropdown element
+    const playerSlotSelect = document.getElementById('playerSlot');
+
+    // Define color palette for player slots
+    const playerColors = {
+      'p1': '#FF4136', // Red
+      'p2': '#2ECC40', // Green
+      'p3': '#0074D9', // Blue
+      'p4': '#FFDC00', // Yellow
+      'p5': '#B10DC9', // Purple
+      'p6': '#FF851B', // Orange
+      'p7': '#00C4B4', // Teal
+      'p8': '#FF69B4'  // Hot Pink
+    };
+
+    // Palette: index 0 = black, 1..8 map to the playerColors p1..p8
+    const palette = [
+      '#000000',
+      playerColors.p1,
+      playerColors.p2,
+      playerColors.p3,
+      playerColors.p4,
+      playerColors.p5,
+      playerColors.p6,
+      playerColors.p7,
+      playerColors.p8
+    ];
+
+    // Last received 8-char payload of digits 0-8; left-to-right maps to players 1..8
+    let lastPayload = '00000000';
+
+    function applyColorForSelectedSlot() {
+      const selected = playerSlotSelect.value; // 'p1'..'p8'
+      const idx = parseInt(selected.slice(1), 10) - 1; // 0-based index
+      const ch = lastPayload[idx] || '0';
+      const colorIndex = parseInt(ch, 10);
+      const color = palette[colorIndex] || '#000000';
+      document.body.style.backgroundColor = color;
+    }
+
+    const connectionStatusElem = document.getElementById('connectionStatus');
+    function updateStatus(status) {
+      if (connectionStatusElem) connectionStatusElem.textContent = status;
+      console.log('[WS]', status);
+    }
+
+    // Function to connect (or reconnect) the WebSocket
+    function connectWebSocket() {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log("WebSocket connected");
+        updateStatus("Connected");
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket disconnected");
+        updateStatus("Disconnected");
+        if (!manualDisconnect) {
+          updateStatus("Reconnecting...");
+          setTimeout(connectWebSocket, 3000);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        ws.close();
+      };
+
+      ws.onmessage = (msg) => {
+        const data = (typeof msg.data === 'string') ? msg.data.trim() : String(msg.data).trim();
+        console.log('Received message:', data);
+        if (/^[0-8]{8}$/.test(data)) {
+          lastPayload = data;
+          applyColorForSelectedSlot();
+        } else {
+          console.warn('Ignoring invalid payload. Expected 8 chars [0-8]. Got:', data);
+        }
+      };
+    }
+
+    // Start initial WebSocket connection
+    connectWebSocket();
+
+    // Disconnect button functionality
+    document.getElementById('disconnectButton').addEventListener('click', () => {
+      manualDisconnect = true;
+      if (ws) {
+        ws.close();
+      }
+      updateStatus("Disconnected");
+    });
+
+    // Wire player slot change to re-apply the color
+    playerSlotSelect.addEventListener('change', applyColorForSelectedSlot);
+
+    // Set initial button color based on lastPayload and selected slot
+    applyColorForSelectedSlot();
+  </script>
+</body>
+</html>

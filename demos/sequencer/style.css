@@ -1,0 +1,285 @@
+:root {
+    --bg-color: #050110;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    /* Reference Colors from image */
+    --neon-pink: #ff0080;
+    --neon-blue: #0088ff;
+    --neon-green: #00ff66;
+    --neon-orange: #ff6600;
+    --neon-purple: #aa00ff;
+    --neon-yellow: #ffcc00;
+    --neon-red: #ff3333;
+    --neon-cyan: #00ccff;
+
+    --text-color: #ffffff;
+    --kick-pulse: 0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    background-image:
+        radial-gradient(circle at 30% 20%, rgba(170, 0, 255, calc(0.1 + var(--kick-pulse) * 0.15)) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(0, 136, 255, calc(0.1 + var(--kick-pulse) * 0.15)) 0%, transparent 50%),
+        radial-gradient(circle at 10% 90%, rgba(255, 0, 128, calc(0.05 + var(--kick-pulse) * 0.1)) 0%, transparent 40%);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: var(--text-color);
+    transition: background-image 0.2s ease-out;
+}
+
+.glass-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
+    border-radius: 40px;
+    padding: 50px;
+    width: 95vw;
+    max-width: 1100px;
+    box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.8),
+        inset 0 0 80px rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+
+h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px rgba(255, 0, 128, 0.5));
+}
+
+h1 span {
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.neon-button {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.neon-button:hover {
+    background: white;
+    color: var(--bg-color);
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+}
+
+.tempo-control {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 180px;
+}
+
+.tempo-control label {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+#sequencer {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    z-index: 2;
+}
+
+.track {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.track-label {
+    width: 90px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+
+.track:hover .track-label {
+    opacity: 0.8;
+}
+
+.steps {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 10px;
+    flex-grow: 1;
+}
+
+.step {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    /* ORB STYLE */
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+}
+
+.step:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.15);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Base glow for ON state - matches reference image soft radial style */
+.step.on {
+    border-color: transparent;
+}
+
+.track-kick .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-pink) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-pink), 0 0 40px rgba(255, 0, 128, 0.3);
+}
+
+.track-snare .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-blue) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-blue), 0 0 40px rgba(0, 136, 255, 0.3);
+}
+
+.track-hihat .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-green) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-green), 0 0 40px rgba(0, 255, 102, 0.3);
+}
+
+.track-clap .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-orange) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-orange), 0 0 40px rgba(255, 102, 0, 0.3);
+}
+
+.track-cowbell .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-yellow) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-yellow), 0 0 40px rgba(255, 204, 0, 0.3);
+}
+
+.track-tom .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-purple) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-purple), 0 0 40px rgba(170, 0, 255, 0.3);
+}
+
+.track-sample .step.on {
+    background: radial-gradient(circle at center, #ffffff 0%, var(--neon-red) 40%, transparent 100%);
+    box-shadow: 0 0 20px var(--neon-red), 0 0 40px rgba(255, 51, 51, 0.3);
+}
+
+/* Playhead highlight */
+.step.current {
+    transform: scale(1.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.step.current::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    left: -5px;
+    right: -5px;
+    border-radius: 50%;
+    border: 1px solid white;
+    opacity: 0.3;
+    animation: beacon 0.5s ease-out infinite;
+}
+
+.step.active {
+    animation: orbPulse 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes orbPulse {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.4);
+        filter: brightness(1.8);
+    }
+
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes beacon {
+    0% {
+        transform: scale(1);
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 0 15px white;
+    cursor: pointer;
+    margin-top: -4px;
+}
+
+.instruction {
+    text-align: center;
+    font-size: 0.75rem;
+    opacity: 0.3;
+    letter-spacing: 1px;
+}
