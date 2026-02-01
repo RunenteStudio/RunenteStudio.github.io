@@ -65,7 +65,7 @@ class RunenteYTSequencer {
                 this.presetMode = 'NONE';
             } else {
                 this.presetMode = 'LOAD';
-                this.presetModeNotify("Click a slot to LOAD");
+                this.presetModeNotify("Haz clic en un espacio para CARGAR");
             }
             this.updatePresetActionUI();
         });
@@ -75,7 +75,7 @@ class RunenteYTSequencer {
                 this.presetMode = 'NONE';
             } else {
                 this.presetMode = 'SAVE';
-                this.presetModeNotify("Click a slot to SAVE");
+                this.presetModeNotify("Haz clic en un espacio para GUARDAR");
             }
             this.updatePresetActionUI();
         });
@@ -280,7 +280,7 @@ class RunenteYTSequencer {
             const randTimeBtn = document.createElement('button');
             randTimeBtn.className = 'square-btn yellow';
             randTimeBtn.textContent = 'R';
-            randTimeBtn.title = 'Randomize Start Time';
+            randTimeBtn.title = 'Aleatorizar tiempo de inicio';
             randTimeBtn.addEventListener('click', () => this.randomizeTrackTime(trackIndex));
             trackEl.appendChild(randTimeBtn);
 
@@ -303,7 +303,7 @@ class RunenteYTSequencer {
             const randPatternBtn = document.createElement('button');
             randPatternBtn.className = 'square-btn yellow';
             randPatternBtn.textContent = 'R';
-            randPatternBtn.title = 'Randomize Pattern';
+            randPatternBtn.title = 'Aleatorizar patrón';
             randPatternBtn.addEventListener('click', () => this.randomizeTrackPattern(trackIndex));
             trackEl.appendChild(randPatternBtn);
 
@@ -326,7 +326,7 @@ class RunenteYTSequencer {
             const muteBtn = document.createElement('button');
             muteBtn.className = 'square-btn mixer-btn';
             muteBtn.textContent = 'M';
-            muteBtn.title = 'Mute';
+            muteBtn.title = 'Silenciar';
             muteBtn.addEventListener('click', () => {
                 track.isMuted = !track.isMuted;
                 muteBtn.classList.toggle('active', track.isMuted);
@@ -471,14 +471,14 @@ class RunenteYTSequencer {
         this.isPlaying = true;
         this.currentStep = 0;
         this.nextStepTime = this.audioCtx.currentTime;
-        document.getElementById('toggle-play').textContent = 'STOP';
+        document.getElementById('toggle-play').textContent = 'DETENER';
         this.scheduler();
     }
 
     stop() {
         this.isPlaying = false;
         clearTimeout(this.timerID);
-        document.getElementById('toggle-play').textContent = 'PLAY';
+        document.getElementById('toggle-play').textContent = 'REPRODUCIR';
         this.players.forEach(p => {
             if (p && p.pauseVideo) p.pauseVideo();
         });

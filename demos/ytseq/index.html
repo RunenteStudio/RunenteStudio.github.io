@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Runente YT Sequencer</title>
+    <title>Secuenciador YT Runente</title>
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
@@ -14,21 +14,21 @@
     <div class="runente-container">
         <header>
             <div class="title-block">
-                <h1>RUNENTE YT SEQUENCER</h1>
+                <h1>SECUENCIADOR YT RUNENTE</h1>
             </div>
 
             <div class="global-controls">
                 <div class="input-group">
-                    <input type="text" id="yt-url" placeholder="Paste URL here..."
+                    <input type="text" id="yt-url" placeholder="Pega la URL aquí..."
                         value="https://www.youtube.com/watch?v=b89CnP0Iq30">
-                    <button id="load-video" class="runente-btn">LOAD</button>
+                    <button id="load-video" class="runente-btn">CARGAR</button>
                 </div>
                 <div class="tempo-group">
                     <label>BPM: <span id="bpm-value">120</span></label>
                     <input type="range" id="bpm" min="40" max="220" value="120">
                 </div>
-                <button id="randomize-all" class="runente-btn">RANDOM!</button>
-                <button id="toggle-play" class="runente-btn primary">PLAY</button>
+                <button id="randomize-all" class="runente-btn">¡ALEATORIO!</button>
+                <button id="toggle-play" class="runente-btn primary">REPRODUCIR</button>
             </div>
         </header>
 
@@ -38,8 +38,8 @@
 
         <div id="presets-container">
             <div class="preset-actions">
-                <button id="preset-load" class="runente-btn">LOAD PRESET</button>
-                <button id="preset-save" class="runente-btn">SAVE PRESET</button>
+                <button id="preset-load" class="runente-btn">CARGAR PRESET</button>
+                <button id="preset-save" class="runente-btn">GUARDAR PRESET</button>
             </div>
             <div class="preset-slots">
                 <button class="preset-btn" data-index="0">1</button>
