@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runente YT Sequencer</title>
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="runente-container">
+        <header>
+            <div class="title-block">
+                <h1>RUNENTE YT SEQUENCER</h1>
+            </div>
+
+            <div class="global-controls">
+                <div class="input-group">
+                    <input type="text" id="yt-url" placeholder="Paste URL here..."
+                        value="https://www.youtube.com/watch?v=b89CnP0Iq30">
+                    <button id="load-video" class="runente-btn">LOAD</button>
+                </div>
+                <div class="tempo-group">
+                    <label>BPM: <span id="bpm-value">120</span></label>
+                    <input type="range" id="bpm" min="40" max="220" value="120">
+                </div>
+                <button id="randomize-all" class="runente-btn">RANDOM!</button>
+                <button id="toggle-play" class="runente-btn primary">PLAY</button>
+            </div>
+        </header>
+
+        <main id="sequencer">
+            <!-- Tracks will be injected here -->
+        </main>
+
+        <div id="presets-container">
+            <div class="preset-actions">
+                <button id="preset-load" class="runente-btn">LOAD PRESET</button>
+                <button id="preset-save" class="runente-btn">SAVE PRESET</button>
+            </div>
+            <div class="preset-slots">
+                <button class="preset-btn" data-index="0">1</button>
+                <button class="preset-btn" data-index="1">2</button>
+                <button class="preset-btn" data-index="2">3</button>
+                <button class="preset-btn" data-index="3">4</button>
+                <button class="preset-btn" data-index="4">5</button>
+                <button class="preset-btn" data-index="5">6</button>
+                <button class="preset-btn" data-index="6">7</button>
+                <button class="preset-btn" data-index="7">8</button>
+            </div>
+        </div>
+
+        <footer class="runente-footer">
+            <p>PER ASPERA AD ASTRA</p>
+        </footer>
+    </div>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
