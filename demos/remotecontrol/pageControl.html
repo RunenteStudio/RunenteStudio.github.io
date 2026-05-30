@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote Page Control</title>
+  <style>
+    @font-face {
+      font-family: "Lettera";
+      src: url("Lettera.otf") format("opentype");
+    }
+
+    @font-face {
+      font-family: "Ndot";
+      src: url("Ndot.otf") format("opentype");
+    }
+
+    :root {
+      --bg-top: #09111f;
+      --bg-bottom: #16253e;
+      --panel: rgba(247, 242, 233, 0.94);
+      --panel-border: rgba(255, 255, 255, 0.18);
+      --ink: #1b2230;
+      --muted: #5d6777;
+      --accent: #ff8a3d;
+      --accent-dark: #d95a0c;
+      --accent-alt: #1f6fe5;
+      --success: #1f995f;
+      --warning: #c96b1d;
+      --danger: #b64242;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      color: var(--ink);
+      font-family: "Lettera", "Trebuchet MS", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255, 138, 61, 0.24), transparent 28%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .panel {
+      width: min(100%, 720px);
+      border: 1px solid var(--panel-border);
+      border-radius: 28px;
+      padding: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-family: "Ndot", "Lettera", sans-serif;
+      font-size: clamp(2rem, 7vw, 3.4rem);
+      line-height: 0.98;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .intro {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .status-pill,
+    .socket-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--warning);
+      box-shadow: 0 0 0 6px rgba(201, 107, 29, 0.14);
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .status-pill[data-state="connected"]::before {
+      background: var(--success);
+      box-shadow: 0 0 0 6px rgba(31, 153, 95, 0.14);
+    }
+
+    .status-pill[data-state="error"]::before {
+      background: var(--danger);
+      box-shadow: 0 0 0 6px rgba(182, 66, 66, 0.14);
+    }
+
+    .socket-pill {
+      font-family: "Ndot", "Lettera", sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      color: var(--accent-alt);
+    }
+
+    .actions {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .action-card {
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(27, 34, 48, 0.08);
+    }
+
+    .action-card h2 {
+      margin: 0 0 12px;
+      font-size: 0.96rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    select,
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      font: inherit;
+    }
+
+    select {
+      margin-bottom: 12px;
+      padding: 14px 16px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(27, 34, 48, 0.12);
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--accent-dark) 50%),
+        linear-gradient(135deg, var(--accent-dark) 50%, transparent 50%);
+      background-position:
+        calc(100% - 20px) calc(50% - 2px),
+        calc(100% - 14px) calc(50% - 2px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    button {
+      padding: 18px 16px;
+      color: #fff9f2;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: "Ndot", "Lettera", sans-serif;
+      font-size: 1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 14px 26px rgba(217, 90, 12, 0.28);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, #2e8cff, #1758cc);
+      box-shadow: 0 14px 26px rgba(31, 111, 229, 0.22);
+    }
+
+    button.tertiary {
+      background: linear-gradient(135deg, #3e9f60, #1f7b47);
+      box-shadow: 0 14px 26px rgba(31, 123, 71, 0.22);
+    }
+
+    button:active {
+      transform: translateY(2px);
+      filter: brightness(0.95);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .payload-panel {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(15, 23, 38, 0.92);
+      color: #ecf3ff;
+    }
+
+    .payload-panel h2 {
+      margin: 0 0 10px;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(236, 243, 255, 0.72);
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.96rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+
+      .panel {
+        padding: 20px;
+        border-radius: 22px;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <p class="eyebrow">Demos Remote Control</p>
+    <h1>Page Control</h1>
+    <p class="intro">
+      Control para enviar cambios de p&aacute;gina por el mismo WebSocket de las otras demos.
+    </p>
+
+    <div class="status-bar">
+      <div id="connectionStatus" class="status-pill" data-state="connecting">Conectando...</div>
+      <div class="socket-pill">wss://td-tests-b8ab469bdcc6.herokuapp.com</div>
+    </div>
+
+    <section class="actions" aria-label="Acciones remotas">
+      <article class="action-card">
+        <h2>Inicio</h2>
+        <button id="homeButton" type="button">Homepage</button>
+      </article>
+
+      <article class="action-card">
+        <h2>Hito</h2>
+        <label for="hitoSelect">Selecciona un ID de 1 a 120</label>
+        <select id="hitoSelect" aria-label="Seleccionar hito"></select>
+        <button id="hitoButton" class="secondary" type="button">Hito</button>
+      </article>
+
+      <article class="action-card">
+        <h2>Recompensa</h2>
+        <label for="recompensaSelect">Selecciona un ID de 1 a 12</label>
+        <select id="recompensaSelect" aria-label="Seleccionar recompensa"></select>
+        <button id="recompensaButton" class="tertiary" type="button">Recompensa</button>
+      </article>
+
+      <article class="action-card">
+        <h2>Archivo</h2>
+        <button id="documentacionButton" type="button">Documentaci&oacute;n</button>
+      </article>
+    </section>
+
+    <section class="payload-panel" aria-live="polite">
+      <h2>Ultimo payload</h2>
+      <pre id="lastPayload">Todavia no se ha enviado ningun mensaje.</pre>
+    </section>
+  </main>
+
+  <script>
+    const wsUrl = "wss://td-tests-b8ab469bdcc6.herokuapp.com";
+    const pageValues = {
+      home: "Home",
+      hito: "Hito",
+      recompensa: "Recompensa",
+      documentacion: "Documentación"
+    };
+
+    let ws;
+
+    const connectionStatusElem = document.getElementById("connectionStatus");
+    const lastPayloadElem = document.getElementById("lastPayload");
+    const hitoSelect = document.getElementById("hitoSelect");
+    const recompensaSelect = document.getElementById("recompensaSelect");
+
+    function fillSelect(selectElem, total) {
+      for (let index = 1; index <= total; index += 1) {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = String(index);
+        selectElem.appendChild(option);
+      }
+    }
+
+    function updateStatus(text, state) {
+      connectionStatusElem.textContent = text;
+      connectionStatusElem.dataset.state = state;
+    }
+
+    function connectWebSocket() {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        updateStatus("Conectado", "connected");
+      };
+
+      ws.onclose = () => {
+        updateStatus("Desconectado", "error");
+        updateStatus("Reconectando...", "connecting");
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        updateStatus("Error de conexion", "error");
+        ws.close();
+      };
+
+      ws.onmessage = (message) => {
+        console.log("Received message:", message.data);
+      };
+    }
+
+    function sendPayload(payload) {
+      const serialized = JSON.stringify(payload, null, 2);
+      lastPayloadElem.textContent = serialized;
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+      } else {
+        updateStatus("Socket no disponible", "error");
+      }
+    }
+
+    fillSelect(hitoSelect, 120);
+    fillSelect(recompensaSelect, 12);
+    connectWebSocket();
+
+    document.getElementById("homeButton").addEventListener("click", () => {
+      sendPayload({ Pagina: pageValues.home });
+    });
+
+    document.getElementById("hitoButton").addEventListener("click", () => {
+      sendPayload({
+        Pagina: pageValues.hito,
+        ID: Number(hitoSelect.value)
+      });
+    });
+
+    document.getElementById("recompensaButton").addEventListener("click", () => {
+      sendPayload({
+        Pagina: pageValues.recompensa,
+        ID: Number(recompensaSelect.value)
+      });
+    });
+
+    document.getElementById("documentacionButton").addEventListener("click", () => {
+      sendPayload({ Pagina: pageValues.documentacion });
+    });
+  </script>
+</body>
+</html>
