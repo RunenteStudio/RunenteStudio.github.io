@@ -288,6 +288,13 @@
       </article>
 
       <article class="action-card">
+        <h2>Mapa</h2>
+        <label for="mapaSelect">Selecciona una vista del mapa</label>
+        <select id="mapaSelect" aria-label="Seleccionar mapa"></select>
+        <button id="mapaButton" class="secondary" type="button">Mapa</button>
+      </article>
+
+      <article class="action-card">
         <h2>Archivo</h2>
         <button id="documentacionButton" type="button">Documentaci&oacute;n</button>
       </article>
@@ -305,8 +312,17 @@
       home: "Home",
       hito: "Hito",
       recompensa: "Recompensa",
+      mapa: "Mapa",
       documentacion: "Documentación"
     };
+
+    const mapaOptions = [
+      "Completo",
+      "Oficio",
+      "Encuentro",
+      "Memoria",
+      "Refugio"
+    ];
 
     let ws;
 
@@ -314,6 +330,7 @@
     const lastPayloadElem = document.getElementById("lastPayload");
     const hitoSelect = document.getElementById("hitoSelect");
     const recompensaSelect = document.getElementById("recompensaSelect");
+    const mapaSelect = document.getElementById("mapaSelect");
 
     function fillSelect(selectElem, total) {
       for (let index = 1; index <= total; index += 1) {
@@ -322,6 +339,15 @@
         option.textContent = String(index);
         selectElem.appendChild(option);
       }
+    }
+
+    function fillSelectFromValues(selectElem, values) {
+      values.forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        selectElem.appendChild(option);
+      });
     }
 
     function updateStatus(text, state) {
@@ -366,6 +392,7 @@
 
     fillSelect(hitoSelect, 120);
     fillSelect(recompensaSelect, 12);
+    fillSelectFromValues(mapaSelect, mapaOptions);
     connectWebSocket();
 
     document.getElementById("homeButton").addEventListener("click", () => {
@@ -383,6 +410,13 @@
       sendPayload({
         Pagina: pageValues.recompensa,
         ID: Number(recompensaSelect.value)
+      });
+    });
+
+    document.getElementById("mapaButton").addEventListener("click", () => {
+      sendPayload({
+        Pagina: pageValues.mapa,
+        ID: mapaSelect.value
       });
     });
 
